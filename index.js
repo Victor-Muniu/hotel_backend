@@ -37,6 +37,7 @@ const banquettingRequisitionRoute = require('./routes/banquettingRequisitionRout
 const salesRouter = require('./routes/salesRoute.js')
 const stockValueRouter = require('./routes/stockvalueRoute.js')
 const profitLossRouer = require('./routes/profit&lossRoute.js')
+const bankStatementRouter = require('./routes/bankStatementRoute.js')
 const app = express();
 app.use(express.json());
  
@@ -83,6 +84,7 @@ app.use('', banquettingRequisitionRoute)
 app.use('', salesRouter)
 app.use('', stockValueRouter)
 app.use('', profitLossRouer)
+app.use('', bankStatementRouter)
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
