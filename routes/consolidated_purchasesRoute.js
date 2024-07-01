@@ -84,14 +84,20 @@ router.post('/upload-consolidated-purchases', upload.single('file'), async (req,
 
         const transactions = jsonData.slice(1).map(row => ({
             category: row[0], 
-            quantity: row[2], 
-            price: row[3], 
+            quantity: Number(row[2]), 
+            price: Number(row[3]), 
             date: new Date(row[1]), 
-            amount: row[4] 
+            amount: Number(row[4])
         }));
 
-        await Consolidated_purchases.insertMany(transactions);
-        console.log("Transactions saved successfully.");
+        // Save transactions and update financials
+        for (const transaction of transactions) {
+            const newEntry = new Consolidated_purchases(transaction);
+            await newEntry.save();
+            await updateFinancials('Purchases', transaction.amount, transaction.date, 'debit');
+        }
+
+        console.log("Transactions saved and financials updated successfully.");
         res.status(201).send(transactions);
     } catch (error) {
         res.status(400).send(error.message);
