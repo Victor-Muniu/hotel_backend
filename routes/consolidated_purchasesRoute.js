@@ -1,13 +1,19 @@
 const express = require('express');
-const router = express.Router();
+const multer = require('multer');
+const xlsx = require('xlsx');
 const Consolidated_purchases = require('../accounts/consolidated_purchases');
-const TrialBalance = require('../accounts/trial_balance'); 
+const TrialBalance = require('../accounts/trial_balance');
 const ProfitLoss = require('../accounts/profit&loss');
+
+const router = express.Router();
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 router.post('/consolidated-purchases', async (req, res) => {
     try {
-        const { category, date, amount } = req.body;
-        const newEntry = new Consolidated_purchases({ category, date, amount });
+        const { category, quantity, price, date, amount } = req.body;
+        const newEntry = new Consolidated_purchases({ category, quantity, price, date, amount });
         await newEntry.save();
 
         await updateFinancials('Purchases', amount, new Date(date), 'debit');
@@ -60,6 +66,35 @@ router.delete('/consolidated-purchases/:id', async (req, res) => {
         res.json({ message: 'Consolidated purchase entry deleted' });
     } catch (err) {
         res.status(500).json({ message: err.message });
+    }
+});
+
+router.post('/upload-consolidated-purchases', upload.single('file'), async (req, res) => {
+    if (!req.file || !req.file.buffer) {
+        return res.status(400).send('No file uploaded.');
+    }
+
+    const dataBuffer = req.file.buffer;
+
+    try {
+        const workbook = xlsx.read(dataBuffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
+
+        const transactions = jsonData.slice(1).map(row => ({
+            category: row[0], 
+            quantity: row[2], 
+            price: row[3], 
+            date: new Date(row[1]), 
+            amount: row[4] 
+        }));
+
+        await Consolidated_purchases.insertMany(transactions);
+        console.log("Transactions saved successfully.");
+        res.status(201).send(transactions);
+    } catch (error) {
+        res.status(400).send(error.message);
     }
 });
 

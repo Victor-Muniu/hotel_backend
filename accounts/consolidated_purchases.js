@@ -5,6 +5,14 @@ const consolidated_purchasesSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    quantity: {
+        type: Number,
+        required: true
+    }, 
+    price: {
+        type: Number,
+        required: true
+    },
     date: {
         type: Date,
         required: true

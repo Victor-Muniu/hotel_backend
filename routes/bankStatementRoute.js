@@ -89,16 +89,15 @@ router.post('/upload-excel', upload.single('file'), async (req, res) => {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = xlsx.utils.sheet_to_json(worksheet);
 
-        // Debugging: Print out keys from the first row of jsonData
         if (jsonData.length > 0) {
             console.log('Keys from Excel data:', Object.keys(jsonData[0]));
         }
 
         const transactions = jsonData.map(row => ({
-            date: row['Date'], // Adjust key names to match those in your Excel sheet
-            value: row['Value'], // Adjust key names to match those in your Excel sheet
-            particulars: row['Particulars'], // Adjust key names to match those in your Excel sheet
-            transaction_cost: row['Transaction Cost'], // Adjust key names to match those in your Excel sheet
+            date: row['Date'], 
+            value: row['Value'], 
+            particulars: row['Particulars'], 
+            transaction_cost: row['Transaction Cost'],
             moneyOut: row['Money Out'] ? parseFloat(row['Money Out']) : null,
             moneyIn: row['Money In'] ? parseFloat(row['Money In']) : null,
             balance: row['Balance'] ? parseFloat(row['Balance']) : null
