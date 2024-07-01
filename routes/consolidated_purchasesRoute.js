@@ -4,6 +4,7 @@ const xlsx = require('xlsx');
 const Consolidated_purchases = require('../accounts/consolidated_purchases');
 const TrialBalance = require('../accounts/trial_balance');
 const ProfitLoss = require('../accounts/profit&loss');
+const Item = require('../store/item');
 
 const router = express.Router();
 
@@ -99,6 +100,50 @@ router.post('/upload-consolidated-purchases', upload.single('file'), async (req,
 
         console.log("Transactions saved and financials updated successfully.");
         res.status(201).send(transactions);
+    } catch (error) {
+        res.status(400).send(error.message);
+    }
+});
+
+router.post('/upload-items', upload.single('file'), async (req, res) => {
+    if (!req.file || !req.file.buffer) {
+        return res.status(400).send('No file uploaded.');
+    }
+
+    const dataBuffer = req.file.buffer;
+
+    try {
+        const workbook = xlsx.read(dataBuffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
+
+        const items = jsonData.slice(1).map(row => ({
+            name: row[0],
+            description: '',
+            group: '',
+            unit_price: Number(row[3]),
+            quantity: Number(row[2]),
+            date: new Date(row[1])
+        }));
+
+        for (const item of items) {
+            let existingItem = await Item.findOne({ name: item.name });
+            if (existingItem) {
+                existingItem.quantity += item.quantity;
+                existingItem.value = existingItem.quantity * existingItem.unit_price;
+                existingItem.date = item.date;
+                await existingItem.save();
+            } else {
+                item.value = item.quantity * item.unit_price;
+                const newItem = new Item(item);
+                console.log(item)
+                await newItem.save();
+            }
+        }
+
+        console.log("Items saved or updated successfully.");
+        res.status(201).send(items);
     } catch (error) {
         res.status(400).send(error.message);
     }

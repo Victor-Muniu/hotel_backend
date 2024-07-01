@@ -8,11 +8,11 @@ const itemSchema = new mongoose.Schema({
     },
     description: {
         type: String,
-        required: true
+        required: false
     },
     group:{
         type: String,
-        required: true
+        required: false
     },
     unit_price: {
         type: Number,
@@ -40,3 +40,4 @@ const itemSchema = new mongoose.Schema({
 const Item = mongoose.model('Item', itemSchema);
 
 module.exports = Item;
+
