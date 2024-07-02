@@ -4,7 +4,6 @@ const Staff = require('../models/staff.js');
 const Room = require('../house_keeping/rooms.js');
 const router = express.Router();
 
-// Middleware to verify JWT token
 function verifyToken(req, res, next) {
     const token = req.headers['authorization'];
     if (!token) {
@@ -20,7 +19,6 @@ function verifyToken(req, res, next) {
     }
 }
 
-// Middleware to check if user is admin
 async function isAdmin(req, res, next) {
     try {
         const user = await Staff.findOne({ emp_no: req.userId });
@@ -44,7 +42,6 @@ router.post('/rooms', async (req, res) => {
     }
 });
 
-// Get all rooms
 router.get('/rooms', async (req, res) => {
     try {
         const rooms = await Room.find();
@@ -54,7 +51,7 @@ router.get('/rooms', async (req, res) => {
     }
 });
 
-// Get a room by ID
+
 router.get('/rooms/:id', async (req, res) => {
     try {
         const room = await Room.findById(req.params.id);
@@ -80,7 +77,7 @@ router.patch('/rooms/:id', async (req, res) => {
     }
 });
 
-// Delete a room by ID
+
 router.delete('/rooms/:id', async (req, res) => {
     try {
         const room = await Room.findByIdAndRemove(req.params.id);
