@@ -5,6 +5,8 @@ const Consolidated_purchases = require('../accounts/consolidated_purchases');
 const TrialBalance = require('../accounts/trial_balance');
 const ProfitLoss = require('../accounts/profit&loss');
 const Item = require('../store/item');
+const Creditors = require('../accounts/creditors');
+const GeneralLeger = require('../accounts/general_lenger'); // Import GeneralLeger model
 
 const router = express.Router();
 
@@ -18,6 +20,22 @@ router.post('/consolidated-purchases', async (req, res) => {
         await newEntry.save();
 
         await updateFinancials('Purchases', amount, new Date(date), 'debit');
+
+        // Create corresponding Creditors entry
+        const creditorsEntry = new Creditors({
+            vendor: req.body.vendor, // Assuming the vendor is sent in the request body
+            date: new Date(date),
+            amount: amount
+        });
+        await creditorsEntry.save();
+
+        // Create corresponding GeneralLeger entry for Creditors
+        const generalLegerEntry = new GeneralLeger({
+            category: 'Creditors',
+            date: new Date(date),
+            amount: amount
+        });
+        await generalLegerEntry.save();
 
         res.status(201).json(newEntry);
     } catch (err) {
@@ -83,23 +101,53 @@ router.post('/upload-consolidated-purchases', upload.single('file'), async (req,
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
 
+        // Calculate total amount and aggregate vendor information
+        let totalAmount = 0;
+        const vendors = new Set(); // Use a set to ensure unique vendors
+
+        for (const row of jsonData.slice(1)) {
+            totalAmount += Number(row[4]); // Assuming amount is in the 5th column (index 4)
+            vendors.add(row[5]); // Assuming vendor name or description is in the 6th column (index 5)
+        }
+
+        // Convert set of vendors to an array (if needed)
+        const vendorsArray = Array.from(vendors);
+
+        // Create consolidated purchases entries
         const transactions = jsonData.slice(1).map(row => ({
             category: row[0], 
             quantity: Number(row[2]), 
             price: Number(row[3]), 
             date: new Date(row[1]), 
             amount: Number(row[4]),
-            vendor: row[5],
+            vendor: row[5], // Assuming vendor name or description is in the 6th column (index 5)
         }));
 
+        // Save consolidated purchases entries
         for (const transaction of transactions) {
             const newEntry = new Consolidated_purchases(transaction);
             await newEntry.save();
             await updateFinancials('Purchases', transaction.amount, transaction.date, 'debit');
+
+            // Create corresponding Creditors entry
+            const creditorsEntry = new Creditors({
+                vendor: transaction.vendor,
+                date: new Date(transaction.date),
+                amount: transaction.amount
+            });
+            await creditorsEntry.save();
+
+            // Create corresponding GeneralLeger entry for Creditors
+            const generalLegerEntry = new GeneralLeger({
+                category: 'Creditors',
+                date: new Date(transaction.date),
+                amount: transaction.amount
+            });
+            await generalLegerEntry.save();
         }
 
         console.log("Transactions saved and financials updated successfully.");
-        res.status(201).send(transactions);
+        res.status(201).json({ consolidatedPurchases: transactions, totalAmount });
     } catch (error) {
         res.status(400).send(error.message);
     }
@@ -137,7 +185,6 @@ router.post('/upload-items', upload.single('file'), async (req, res) => {
             } else {
                 item.value = item.quantity * item.unit_price;
                 const newItem = new Item(item);
-                console.log(item)
                 await newItem.save();
             }
         }
