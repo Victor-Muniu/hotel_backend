@@ -1,6 +1,49 @@
 const express = require('express');
 const router = express.Router();
 const StockValue = require('../accounts/stock_value'); 
+const BalanceSheet = require('../accounts/balancesheet'); 
+
+
+async function updateBalanceSheet(asset) {
+    const { date, amount } = asset;
+    const recordName =  'Stock Value';
+
+    let balanceSheetEntry = await BalanceSheet.findOne({ name: recordName });
+
+    if (!balanceSheetEntry) {
+        balanceSheetEntry = new BalanceSheet({
+            name: recordName,
+            category: 'Current Assets',
+            amount,
+            date: date
+        });
+        
+    } else {
+        balanceSheetEntry.amount += amount;
+    }
+
+    console.log(balanceSheetEntry)
+
+    await balanceSheetEntry.save();
+}
+
+
+router.post('/stock-values', async (req, res) => {
+    try {
+        const { date, amount } = req.body;
+
+        const newStockValue = new StockValue({
+            date,
+            amount
+        });
+
+        await newStockValue.save();
+        await updateBalanceSheet(newStockValue)
+        res.status(201).json(newStockValue);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
 
 
 router.get('/stockValues', async (req, res) => {

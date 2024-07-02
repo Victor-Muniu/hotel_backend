@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const Assets = require('../accounts/assets');
-const GeneralLedger = require('../accounts/general_lenger'); // Corrected typo
+const GeneralLedger = require('../accounts/general_lenger');
+const BalanceSheet = require('../accounts/balancesheet'); 
 
 async function updatedFinancials(asset) {
     const { amount, category } = asset;
-    let ledgerEntry = await GeneralLedger.findOne({ category }); // Corrected
+    let ledgerEntry = await GeneralLedger.findOne({ category });
 
     if (!ledgerEntry) {
         ledgerEntry = new GeneralLedger({
@@ -18,6 +19,26 @@ async function updatedFinancials(asset) {
     }
 
     await ledgerEntry.save();
+}
+
+async function updateBalanceSheet(asset) {
+    const { name, category, amount } = asset;
+    const recordName =  name;
+
+    let balanceSheetEntry = await BalanceSheet.findOne({ name: recordName, name });
+
+    if (!balanceSheetEntry) {
+        balanceSheetEntry = new BalanceSheet({
+            name: recordName,
+            category,
+            amount,
+            date: new Date()
+        });
+    } else {
+        balanceSheetEntry.amount += amount;
+    }
+
+    await balanceSheetEntry.save();
 }
 
 router.post('/assets', async (req, res) => {
@@ -42,6 +63,7 @@ router.post('/assets', async (req, res) => {
 
         await newAsset.save();
         await updatedFinancials(newAsset);
+        await updateBalanceSheet(newAsset);
         res.status(201).json(newAsset);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -71,12 +93,11 @@ router.get('/assets/:id', async (req, res) => {
     }
 });
 
-// Update an asset
+
 router.patch('/assets/:id', async (req, res) => {
     try {
         const updatedData = req.body;
 
-        // If issued, stored, spoilt, or price are being updated, recalculate quantity and value
         if (updatedData.issued !== undefined || updatedData.stored !== undefined || updatedData.spoilt !== undefined || updatedData.price !== undefined) {
             const asset = await Assets.findById(req.params.id);
             if (!asset) {
@@ -90,7 +111,8 @@ router.patch('/assets/:id', async (req, res) => {
 
             updatedData.quantity = issued + stored + spoilt;
             updatedData.value = updatedData.quantity * price;
-            updatedData.amount = updatedData.value;  // Assuming amount is the same as value for this case
+            updatedData.amount = updatedData.value;  
+            
         }
 
         const updatedAsset = await Assets.findByIdAndUpdate(req.params.id, updatedData, { new: true });
@@ -98,8 +120,10 @@ router.patch('/assets/:id', async (req, res) => {
             return res.status(404).json({ message: 'Asset not found' });
         }
 
-        // Update the ledger entry
+
+        
         await updatedFinancials(updatedAsset);
+        await updateBalanceSheet(updatedAsset);
 
         res.json(updatedAsset);
     } catch (err) {
@@ -107,7 +131,8 @@ router.patch('/assets/:id', async (req, res) => {
     }
 });
 
-// Delete an asset
+
+
 router.delete('/assets/:id', async (req, res) => {
     try {
         const deletedAsset = await Assets.findByIdAndDelete(req.params.id);
