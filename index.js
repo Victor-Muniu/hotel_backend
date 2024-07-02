@@ -39,6 +39,7 @@ const stockValueRouter = require('./routes/stockvalueRoute.js')
 const profitLossRouer = require('./routes/profit&lossRoute.js')
 const bankStatementRouter = require('./routes/bankStatementRoute.js')
 const assetsRouter = require('./routes/assetsRouter.js')
+const daily_collectionsRouter = require('./routes/dailycollectionsRouter.js')
 const app = express();
 app.use(express.json());
  
@@ -87,6 +88,7 @@ app.use('', stockValueRouter)
 app.use('', profitLossRouer)
 app.use('', bankStatementRouter)
 app.use('',assetsRouter)
+app.use('', daily_collectionsRouter)
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
