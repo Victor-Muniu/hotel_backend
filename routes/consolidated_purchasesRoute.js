@@ -88,10 +88,10 @@ router.post('/upload-consolidated-purchases', upload.single('file'), async (req,
             quantity: Number(row[2]), 
             price: Number(row[3]), 
             date: new Date(row[1]), 
-            amount: Number(row[4])
+            amount: Number(row[4]),
+            vendor: row[5],
         }));
 
-        // Save transactions and update financials
         for (const transaction of transactions) {
             const newEntry = new Consolidated_purchases(transaction);
             await newEntry.save();
