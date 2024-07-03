@@ -3,7 +3,7 @@ const router = express.Router();
 const RestaurantOrder = require('../sales/restaurantOrder');
 const Menu = require('../models/menu');
 const Staff = require('../models/staff');
-const Tables = require('../models/table');
+const Table = require('../models/table');
 const RestaurantBill = require('../sales/restaurantBills');
 const TrialBalance = require('../accounts/trial_balance');
 const Sales = require('../accounts/sales');
@@ -49,59 +49,74 @@ async function updateFinancialEntries(groupName, amount, date, action = 'add') {
 
 router.post('/restaurantOrders', async (req, res) => {
     try {
-        const { menuName, staffName, quantity, table_no, remarks, date } = req.body;
-
-        const menuItem = await Menu.findOne({ name: menuName });
-        if (!menuItem) {
-            return res.status(404).json({ message: 'Menu item not found' });
-        }
+        const { items, staffName, table_no, remarks, date } = req.body;
 
         const staff = await Staff.findOne({ fname: staffName });
         if (!staff) {
             return res.status(404).json({ message: 'Staff member not found' });
         }
 
-        const table = await Tables.findOne({ table_no });
+        const table = await Table.findOne({ table_no });
         if (!table) {
             return res.status(404).json({ message: 'Table not found' });
         }
 
-        const amount = menuItem.price * quantity;
+        
+        table.status = 'Occupied';
+        await table.save();
+
+        let totalAmount = 0;
+        const orderItems = [];
+
+        for (const item of items) {
+            const menuItem = await Menu.findOne({ name: item.menuName });
+            if (!menuItem) {
+                return res.status(404).json({ message: `Menu item ${item.menuName} not found` });
+            }
+
+            const itemAmount = menuItem.price * item.quantity;
+            totalAmount += itemAmount;
+
+            orderItems.push({
+                menuId: menuItem._id,
+                quantity: item.quantity,
+                amount: itemAmount
+            });
+
+            menuItem.quantity -= item.quantity;
+            await menuItem.save();
+        }
 
         const newOrder = new RestaurantOrder({
-            menuId: menuItem._id,
-            quantity,
+            items: orderItems,
             tableId: table._id,
             staffId: staff._id,
-            amount,
+            totalAmount,
             remarks,
             date
         });
 
         await newOrder.save();
 
-        menuItem.quantity -= quantity;
-        await menuItem.save();
-
         const newBill = new RestaurantBill({
             restaurantOrderId: newOrder._id,
             staffName: staffName,
-            amount: amount,
+            amount: totalAmount,
             date: date,
-            menuName: menuName,
-            status: 'Not cleared' 
+            menuName: items.map(item => item.menuName).join(', '),
+            status: 'Not cleared'
         });
 
         await newBill.save();
 
         const newSale = new Sales({
             ammenitiesId: newBill._id,
-            amount
+            amount: totalAmount
         });
 
         await newSale.save();
 
-        await updateFinancialEntries('Sales', amount, new Date(), 'add');
+        await updateFinancialEntries('Sales', totalAmount, new Date(), 'add');
 
         res.status(201).json(newOrder);
     } catch (err) {
@@ -111,7 +126,12 @@ router.post('/restaurantOrders', async (req, res) => {
 
 router.get('/restaurantOrders', async (req, res) => {
     try {
-        const orders = await RestaurantOrder.find().populate('menuId').populate('staffId').populate('tableId');
+        const orders = await RestaurantOrder.find()
+            .populate('items.menuId', 'name') 
+            
+            .populate('staffId', 'fname') 
+            
+            .populate('tableId', 'table_no'); 
         res.json(orders);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -120,7 +140,10 @@ router.get('/restaurantOrders', async (req, res) => {
 
 router.get('/restaurantOrders/:id', async (req, res) => {
     try {
-        const order = await RestaurantOrder.findById(req.params.id).populate('menuId').populate('staffId').populate('tableId');
+        const order = await RestaurantOrder.findById(req.params.id)
+            .populate('items.menuId', 'name')
+            .populate('staffId', 'fname')
+            .populate('tableId', 'table_no'); 
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
         }
@@ -132,20 +155,33 @@ router.get('/restaurantOrders/:id', async (req, res) => {
 
 router.patch('/restaurantOrders/:id', async (req, res) => {
     try {
-        const { menuName, staffName, quantity, table_no, remarks } = req.body;
+        const { items, staffName, table_no, remarks } = req.body;
         const order = await RestaurantOrder.findById(req.params.id);
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        if (menuName) {
-            const menuItem = await Menu.findOne({ name: menuName });
+        let totalAmount = 0;
+        const orderItems = [];
+
+        for (const item of items) {
+            const menuItem = await Menu.findOne({ name: item.menuName });
             if (!menuItem) {
-                return res.status(404).json({ message: 'Menu item not found' });
+                return res.status(404).json({ message: `Menu item ${item.menuName} not found` });
             }
-            order.menuId = menuItem._id;
-            order.amount = menuItem.price * quantity;
+
+            const itemAmount = menuItem.price * item.quantity;
+            totalAmount += itemAmount;
+
+            orderItems.push({
+                menuId: menuItem._id,
+                quantity: item.quantity,
+                amount: itemAmount
+            });
         }
+
+        order.items = orderItems;
+        order.totalAmount = totalAmount;
 
         if (staffName) {
             const staff = await Staff.findOne({ fname: staffName });
@@ -155,18 +191,16 @@ router.patch('/restaurantOrders/:id', async (req, res) => {
             order.staffId = staff._id;
         }
 
-        if (quantity) {
-            const menuItem = await Menu.findById(order.menuId);
-            order.quantity = quantity;
-            order.amount = menuItem.price * quantity;
-        }
-
         if (table_no) {
-            const table = await Tables.findOne({ table_no });
+            const table = await Table.findOne({ table_no });
             if (!table) {
                 return res.status(404).json({ message: 'Table not found' });
             }
             order.tableId = table._id;
+
+            
+            table.status = 'Occupied';
+            await table.save();
         }
 
         if (remarks) {
@@ -187,15 +221,24 @@ router.delete('/restaurantOrders/:id', async (req, res) => {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        const menuItem = await Menu.findById(order.menuId);
-        if (menuItem) {
-            menuItem.quantity += order.quantity;
-            await menuItem.save();
+        for (const item of order.items) {
+            const menuItem = await Menu.findById(item.menuId);
+            if (menuItem) {
+                menuItem.quantity += item.quantity;
+                await menuItem.save();
+            }
+        }
+
+    
+        const table = await Table.findById(order.tableId);
+        if (table) {
+            table.status = 'Available';
+            await table.save();
         }
 
         await order.deleteOne();
 
-        await updateFinancialEntries('Sales', order.amount, new Date(), 'subtract');
+        await updateFinancialEntries('Sales', order.totalAmount, new Date(), 'subtract');
 
         res.json({ message: 'Order deleted' });
     } catch (err) {

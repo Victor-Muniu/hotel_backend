@@ -5,7 +5,7 @@ const Room = require('../house_keeping/rooms');
 
 router.post('/reservations', async (req, res) => {
     try {
-        const { type, individual, group, date, adults, kids, room_no, package_type } = req.body;
+        const { type, individual, group, checkOutdate, checkIndate,  adults, kids, room_no, package_type } = req.body;
 
         for (let room of room_no) {
             let roomEntry = await Room.findOne({ room_no: room });
@@ -27,7 +27,9 @@ router.post('/reservations', async (req, res) => {
             adults,
             kids,
             room_no,
-            package_type
+            package_type,
+            checkOutdate,
+            checkIndate
         });
 
         await newReservation.save();
