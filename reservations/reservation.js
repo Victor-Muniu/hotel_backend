@@ -42,6 +42,11 @@ const reservationSchema = new mongoose.Schema({
             return this.type === 'group';
         }
     },
+
+    group_name: {
+        type: String,
+        required: true
+    },
     checkIndate: {
         type: Date,
         required: true

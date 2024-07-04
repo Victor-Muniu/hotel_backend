@@ -5,7 +5,7 @@ const Room = require('../house_keeping/rooms');
 
 router.post('/reservations', async (req, res) => {
     try {
-        const { type, individual, group, checkOutdate, checkIndate,  adults, kids, room_no, package_type } = req.body;
+        const { type, individual, group, checkOutdate, checkIndate,  adults, kids, room_no, package_type, group_name } = req.body;
 
         for (let room of room_no) {
             let roomEntry = await Room.findOne({ room_no: room });
@@ -24,6 +24,7 @@ router.post('/reservations', async (req, res) => {
             individual: type === 'individual' ? individual : undefined,
             group: type === 'group' ? group : undefined,
             date,
+            group_name,
             adults,
             kids,
             room_no,
