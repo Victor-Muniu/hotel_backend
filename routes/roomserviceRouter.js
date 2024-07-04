@@ -7,7 +7,7 @@ const Menu = require('../models/menu');
 
 router.post('/room-services', async (req, res) => {
     try {
-        const { menuItems, delivery_fee } = req.body;
+        const { menuItems, delivery_fee, room_no } = req.body;
 
         
         let totalPrice = 0;
@@ -27,7 +27,8 @@ router.post('/room-services', async (req, res) => {
         const newRoomService = new RoomService({
             menuId: menuIds,
             delivery_fee: delivery_fee || 500,
-            total: totalPrice
+            total: totalPrice,
+            room_no: room_no
         });
 
         await newRoomService.save();
@@ -63,7 +64,7 @@ router.get('/room-services/:id', async (req, res) => {
 
 router.patch('/room-services/:id', async (req, res) => {
     try {
-        const { menuItems, delivery_fee } = req.body;
+        const { menuItems, delivery_fee , room_no} = req.body;
 
   
         let totalPrice = 0;
@@ -81,7 +82,7 @@ router.patch('/room-services/:id', async (req, res) => {
 
         const updatedRoomService = await RoomService.findByIdAndUpdate(
             req.params.id,
-            { menuId: menuIds, delivery_fee: delivery_fee || 500, total: totalPrice },
+            { menuId: menuIds, delivery_fee: delivery_fee || 500, total: totalPrice ,room_no },
             { new: true }
         );
 

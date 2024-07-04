@@ -1,9 +1,13 @@
 const mongoose = require('mongoose')
 const roomServiceSchema = new mongoose.Schema({
    menuId: {
-        type: [mongoose.Schema.Types.ObjectId],
-        ref: 'Menu',
-        required: true
+     type: [mongoose.Schema.Types.ObjectId],
+     ref: 'Menu',
+     required: true
+   },
+   room_no: {
+     type: Number,
+     required: true,
    },
    delivery_fee: {
         type: Number,
