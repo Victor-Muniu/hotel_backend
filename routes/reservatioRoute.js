@@ -23,7 +23,6 @@ router.post('/reservations', async (req, res) => {
             type,
             individual: type === 'individual' ? individual : undefined,
             group: type === 'group' ? group : undefined,
-            date,
             group_name,
             adults,
             kids,
