@@ -96,6 +96,18 @@ router.patch('/room-services/:id', async (req, res) => {
     }
 });
 
+router.get('/room-services/room/:room_no', async (req, res) => {
+    try {
+        const roomServices = await RoomService.find({ room_no: req.params.room_no }).populate('menuId');
+        if (!roomServices || roomServices.length === 0) {
+            return res.status(404).json({ message: 'Room services not found' });
+        }
+        res.json(roomServices);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 router.delete('/room-services/:id', async (req, res) => {
     try {
         const deletedRoomService = await RoomService.findByIdAndDelete(req.params.id);
