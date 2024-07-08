@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 
-const clubOrderSchema = new mongoose.Schema({
+
+
+const itemSchema = new mongoose.Schema({
     menuId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Menu',
@@ -10,6 +12,16 @@ const clubOrderSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    amount: {
+        type: Number,
+        required: true
+    }
+});
+const clubOrderSchema = new mongoose.Schema({
+    items: {
+        type: [itemSchema],
+        required: true
+    },
     tableId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Table',
@@ -17,14 +29,14 @@ const clubOrderSchema = new mongoose.Schema({
     },
     date: {
         type: Date,
-        required: true,
+        required: true
     },
     staffId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Staff',
         required: true
     },
-    amount: {
+    totalAmount: {
         type: Number,
         required: true
     },
