@@ -1,7 +1,6 @@
 const express = require('express')
 const router = express.Router()
 const RestaurantBill =require('../sales/restaurantBills')
-
 router.get('/restaurantBills', async (req, res) => {
     try {
         const bills = await RestaurantBill.find().populate('restaurantOrderId');
@@ -25,6 +24,10 @@ router.get('/restaurantBills/byStaff/:staffName', async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 });
+
+
+
+
 
 router.patch('/restaurantBills/:id', async (req, res) => {
     const { id } = req.params;

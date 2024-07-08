@@ -2,6 +2,47 @@ const express = require('express');
 const router = express.Router();
 const ReservationBills = require('../sales/reservationsBills');
 const Reservation = require('../reservations/reservation');
+const TrialBalance = require('../accounts/trial_balance');
+const ProfitLoss = require('../accounts/profit&loss');
+
+async function updateFinancialEntries(groupName, amount, date, action = 'add') {
+    const year = date.getFullYear();
+
+    let trialBalanceEntry = await TrialBalance.findOne({
+        group_name: groupName,
+        Date: { $gte: new Date(year, 0, 1), $lt: new Date(year + 1, 0, 1) }
+    });
+    let profitLossEntry = await ProfitLoss.findOne({
+        group_name: groupName,
+        Date: { $gte: new Date(year, 0, 1), $lt: new Date(year + 1, 0, 1) }
+    });
+
+    if (!trialBalanceEntry) {
+        trialBalanceEntry = new TrialBalance({
+            group_name: groupName,
+            Debit: 0,
+            Credit: action === 'add' ? amount : 0,
+            Date: new Date(year, 0, 1)
+        });
+    } else {
+        trialBalanceEntry.Credit = action === 'add' ? trialBalanceEntry.Credit + amount : trialBalanceEntry.Credit - amount;
+    }
+
+    if (!profitLossEntry) {
+        profitLossEntry = new ProfitLoss({
+            group_name: groupName,
+            Debit: 0,
+            Credit: action === 'add' ? amount : 0,
+            Date: new Date(year, 0, 1)
+        });
+    } else {
+        profitLossEntry.Credit = action === 'add' ? profitLossEntry.Credit + amount : profitLossEntry.Credit - amount;
+    }
+
+    await trialBalanceEntry.save();
+    await profitLossEntry.save();
+}
+
 
 router.post('/reservation-bills', async (req, res) => {
     const { reservationID, total_amount,  package_price } = req.body;
@@ -15,6 +56,16 @@ router.post('/reservation-bills', async (req, res) => {
 
         const newBill = new ReservationBills({ reservationID,package_price, total_amount });
         await newBill.save();
+
+        const newSale = new Sales({
+            ammenitiesId: newRoomService._id,
+            amount: total_amount
+        });
+
+        await newSale.save();
+
+        // Update the financial entries
+        await updateFinancialEntries('Sales', total_amount, new Date(), 'add')
         res.status(201).json(newBill);
     } catch (err) {
         res.status(400).json({ message: err.message });

@@ -2,6 +2,47 @@ const express = require('express');
 const router = express.Router();
 const RoomService = require('../reservations/room_service');
 const Menu = require('../models/menu');
+const TrialBalance = require('../accounts/trial_balance');
+const ProfitLoss = require('../accounts/profit&loss');
+
+async function updateFinancialEntries(groupName, amount, date, action = 'add') {
+    const year = date.getFullYear();
+
+    let trialBalanceEntry = await TrialBalance.findOne({
+        group_name: groupName,
+        Date: { $gte: new Date(year, 0, 1), $lt: new Date(year + 1, 0, 1) }
+    });
+    let profitLossEntry = await ProfitLoss.findOne({
+        group_name: groupName,
+        Date: { $gte: new Date(year, 0, 1), $lt: new Date(year + 1, 0, 1) }
+    });
+
+    if (!trialBalanceEntry) {
+        trialBalanceEntry = new TrialBalance({
+            group_name: groupName,
+            Debit: 0,
+            Credit: action === 'add' ? amount : 0,
+            Date: new Date(year, 0, 1)
+        });
+    } else {
+        trialBalanceEntry.Credit = action === 'add' ? trialBalanceEntry.Credit + amount : trialBalanceEntry.Credit - amount;
+    }
+
+    if (!profitLossEntry) {
+        profitLossEntry = new ProfitLoss({
+            group_name: groupName,
+            Debit: 0,
+            Credit: action === 'add' ? amount : 0,
+            Date: new Date(year, 0, 1)
+        });
+    } else {
+        profitLossEntry.Credit = action === 'add' ? profitLossEntry.Credit + amount : profitLossEntry.Credit - amount;
+    }
+
+    await trialBalanceEntry.save();
+    await profitLossEntry.save();
+}
+
 
 
 
@@ -30,6 +71,16 @@ router.post('/room-services', async (req, res) => {
             total: totalPrice,
             room_no: room_no
         });
+
+        const newSale = new Sales({
+            ammenitiesId: newRoomService._id,
+            amount: totalPrice
+        });
+
+        await newSale.save();
+
+        
+        await updateFinancialEntries('Sales', totalPrice, new Date(), 'add')
 
         await newRoomService.save();
         res.status(201).json(newRoomService);
