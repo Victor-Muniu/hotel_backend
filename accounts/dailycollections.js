@@ -12,10 +12,26 @@ const dailyCollectionSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    total_sales: {
+    mpesa: {
         type: Number,
         required: true,
     }, 
+    cash: {
+        type: Number,
+        required: true,
+    }, 
+    pesa_pal: {
+        type: Number,
+        required: true,
+    },
+    equity: {
+        type: Number,
+        required: true,
+    },
+    cheque: {
+        type: Number,
+        required: true,
+    },   
     total_revenue:{
         type: Number,
         required: true, 
