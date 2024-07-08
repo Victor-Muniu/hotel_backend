@@ -44,18 +44,14 @@ async function updateFinancialEntries(groupName, amount, date, action = 'add') {
     await profitLossEntry.save();
 }
 
-
-
 router.get('/laundry-service-bills/room/:room_no', async (req, res) => {
     const { room_no } = req.params;
 
     try {
-
         const room = await Room.findOne({ room_no });
         if (!room) {
             return res.status(404).json({ message: `Room with room number ${room_no} not found` });
         }
-
 
         const bills = await LaundryServiceBill.find({ roomId: room._id })
             .populate({
@@ -74,58 +70,47 @@ router.get('/laundry-service-bills/room/:room_no', async (req, res) => {
     }
 });
 
-
-
-
 router.post('/laundry-service-bills', async (req, res) => {
-    const { roomId, laundryServices } = req.body;
+    const { room_no, laundryServices } = req.body;
 
     try {
-        
+        const room = await Room.findOne({ room_no });
+        if (!room) {
+            return res.status(404).json({ message: `Room with room number ${room_no} not found` });
+        }
+
         const fetchedLaundryServices = await Promise.all(laundryServices.map(async service => {
-            const laundryService = await LaundryService.findById(service.laundryID);
+            const laundryService = await LaundryService.findOne({ name: service.laundryName });
             if (!laundryService) {
-                throw new Error(`LaundryService with ID ${service.laundryID} not found`);
+                throw new Error(`LaundryService with name ${service.laundryName} not found`);
             }
             return {
-                _id: service._id,
-                laundryID: service.laundryID,
+                laundryID: laundryService._id,
                 quantity: service.quantity,
                 name: laundryService.name,
-                pricePerUnit: laundryService.pricePerUnit
+                pricePerUnit: laundryService.price
             };
         }));
 
-        
-        const room = await Room.findById(roomId);
-        if (!room) {
-            throw new Error(`Room with ID ${roomId} not found`);
-        }
-
         let total = 0;
         fetchedLaundryServices.forEach(service => {
+            if (typeof service.pricePerUnit !== 'number' || typeof service.quantity !== 'number') {
+                throw new Error(`Invalid price or quantity for laundry service ${service.name}`);
+            }
             total += service.quantity * service.pricePerUnit;
         });
 
-        
         const newBill = new LaundryServiceBill({
-            roomId,
-            roomNumber: room.roomNumber,
-            laundryServices: fetchedLaundryServices,
+            roomId: room._id,
+            laundryServices: fetchedLaundryServices.map(service => ({
+                laundryID: service.laundryID,
+                quantity: service.quantity
+            })),
             total
         });
-
-        const newSale = new Sales({
-            ammenitiesId: newRoomService._id,
-            amount: total
-        });
-
-        await newSale.save();
-
-        
-        await updateFinancialEntries('Sales', total, new Date(), 'add')
-
         await newBill.save();
+
+        await updateFinancialEntries('Sales', total, new Date(), 'add');
 
         res.status(201).json(newBill);
     } catch (err) {

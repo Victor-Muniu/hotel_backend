@@ -50,39 +50,36 @@ router.post('/room-services', async (req, res) => {
     try {
         const { menuItems, delivery_fee, room_no } = req.body;
 
-        
         let totalPrice = 0;
         const menuIds = [];
+        const quantities = []; // Array to store quantities
+
         for (const item of menuItems) {
             const menu = await Menu.findOne({ name: item.name });
             if (!menu) {
                 return res.status(404).json({ message: `Menu item ${item.name} not found` });
             }
             menuIds.push(menu._id);
+            quantities.push(item.quantity); // Push quantity to array
             totalPrice += menu.price * item.quantity;
         }
 
-        totalPrice += delivery_fee || 500;  
-        
+        totalPrice += delivery_fee || 500;
 
         const newRoomService = new RoomService({
             menuId: menuIds,
             delivery_fee: delivery_fee || 500,
+            quantity: quantities, // Assign quantities array to quantity field
             total: totalPrice,
             room_no: room_no
         });
 
-        const newSale = new Sales({
-            ammenitiesId: newRoomService._id,
-            amount: totalPrice
-        });
-
-        await newSale.save();
+        await newRoomService.save();
 
         
-        await updateFinancialEntries('Sales', totalPrice, new Date(), 'add')
 
-        await newRoomService.save();
+        await updateFinancialEntries('Sales', totalPrice, new Date(), 'add');
+
         res.status(201).json(newRoomService);
     } catch (err) {
         res.status(400).json({ message: err.message });
