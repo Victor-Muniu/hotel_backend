@@ -26,4 +26,21 @@ router.get('/restaurantBills/byStaff/:staffName', async (req, res) => {
     }
 });
 
+router.patch('/restaurantBills/:id', async (req, res) => {
+    const { id } = req.params;
+    const updates = req.body;
+
+    try {
+        const updatedBill = await RestaurantBill.findByIdAndUpdate(id, updates, { new: true });
+
+        if (!updatedBill) {
+            return res.status(404).json({ message: 'Restaurant bill not found' });
+        }
+
+        res.json(updatedBill);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+})
+
 module.exports =router
