@@ -5,7 +5,11 @@ const reservationBills = new mongoose.Schema({
         ref: 'Reservation',
         required: true
     },
-    total: {
+    package_price: {
+        type: [Number],
+        required: true
+    },
+    total_amount: {
         type: Number,
         required: true
     }

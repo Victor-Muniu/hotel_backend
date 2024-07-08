@@ -9,13 +9,13 @@ router.get('/laundry-service-bills/room/:room_no', async (req, res) => {
     const { room_no } = req.params;
 
     try {
-        // Find the room by room_no
+
         const room = await Room.findOne({ room_no });
         if (!room) {
             return res.status(404).json({ message: `Room with room number ${room_no} not found` });
         }
 
-        // Find the laundry service bills by roomId
+
         const bills = await LaundryServiceBill.find({ roomId: room._id })
             .populate({
                 path: 'roomId',
