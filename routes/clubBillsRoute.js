@@ -20,4 +20,21 @@ router.get('/clubBills/byStaff/:staffName', async (req, res) => {
     }
 });
 
+router.patch('/clubBills/:id', async (req, res) => {
+    const { id } = req.params;
+    const updates = req.body;
+
+    try {
+        const updatedBill = await ClubBill.findByIdAndUpdate(id, updates, { new: true });
+
+        if (!updatedBill) {
+            return res.status(404).json({ message: 'Club bill not found' });
+        }
+
+        res.json(updatedBill);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
 module.exports = router;
