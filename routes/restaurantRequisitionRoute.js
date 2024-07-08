@@ -57,12 +57,13 @@ router.patch('/restaurantRequisitions/:id', async (req, res) => {
 
 router.get('/restaurantRequisitions', async (req, res) => {
     try {
-        const requisitions = await RestaurantRequisition.find();
+        const requisitions = await RestaurantRequisition.find().populate('itemID', 'name');
         res.json(requisitions);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
+
 
 router.delete('/restaurantRequisitions/:id', async (req, res) => {
     try {
