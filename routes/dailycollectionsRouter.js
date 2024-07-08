@@ -10,7 +10,6 @@ router.post('/dailycollections', async (req, res) => {
     try {
         const { date, float, cash_paid_out, mpesa, cash, pesa_pal, equity, cheque, shift } = req.body;
 
-        // Ensure all required fields are present
         if (date === undefined || float === undefined || cash_paid_out === undefined || mpesa === undefined || cash === undefined || pesa_pal === undefined || equity === undefined || cheque === undefined) {
             return res.status(400).json({ message: 'Missing required fields' });
         }

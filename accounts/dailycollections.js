@@ -31,7 +31,11 @@ const dailyCollectionSchema = new mongoose.Schema({
     cheque: {
         type: Number,
         required: true,
-    },   
+    }, 
+    total_sales :{
+        type: Number,
+        required: true,
+    },  
     total_revenue:{
         type: Number,
         required: true, 
