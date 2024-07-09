@@ -149,7 +149,8 @@ router.get('/room-services/room/:room_no', async (req, res) => {
     try {
         const roomServices = await RoomService.find({ room_no: req.params.room_no }).populate('menuId');
         if (!roomServices || roomServices.length === 0) {
-            return res.status(404).json({ message: 'Room services not found' });
+            return res.status(200).json([]); 
+            
         }
         res.json(roomServices);
     } catch (err) {
