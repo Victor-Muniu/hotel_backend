@@ -58,7 +58,7 @@ router.get('/consolidated-purchases/:id', async (req, res) => {
         }
         res.json(entry);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status({ message: err.message });
     }
 });
 
@@ -107,10 +107,8 @@ router.post('/upload-consolidated-purchases', upload.single('file'), async (req,
             vendors.add(row[5]);
         }
 
-   
         const vendorsArray = Array.from(vendors);
 
-  s
         const transactions = jsonData.slice(1).map(row => ({
             category: row[0], 
             quantity: Number(row[2]), 
@@ -132,7 +130,6 @@ router.post('/upload-consolidated-purchases', upload.single('file'), async (req,
             });
             await creditorsEntry.save();
 
-            // Create corresponding GeneralLeger entry for Creditors
             const generalLegerEntry = new GeneralLeger({
                 category: 'Creditors',
                 date: new Date(transaction.date),

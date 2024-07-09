@@ -64,7 +64,7 @@ router.post('/reservation-bills', async (req, res) => {
 
         await newSale.save();
 
-        // Update the financial entries
+       
         await updateFinancialEntries('Sales', total_amount, new Date(), 'add')
         res.status(201).json(newBill);
     } catch (err) {
