@@ -60,7 +60,8 @@ router.post('/room-services', async (req, res) => {
                 return res.status(404).json({ message: `Menu item ${item.name} not found` });
             }
             menuIds.push(menu._id);
-            quantities.push(item.quantity); // Push quantity to array
+            quantities.push(item.quantity); 
+            
             totalPrice += menu.price * item.quantity;
         }
 
@@ -69,7 +70,7 @@ router.post('/room-services', async (req, res) => {
         const newRoomService = new RoomService({
             menuId: menuIds,
             delivery_fee: delivery_fee || 500,
-            quantity: quantities, // Assign quantities array to quantity field
+            quantity: quantities, 
             total: totalPrice,
             room_no: room_no
         });

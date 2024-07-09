@@ -10,11 +10,11 @@ router.post('/reservations', async (req, res) => {
         for (let room of room_no) {
             let roomEntry = await Room.findOne({ room_no: room });
             if (!roomEntry) {
-                roomEntry = new Room({ room_no: room, status: 'Occupied' });
-            } else if (roomEntry.status === 'Occupied') {
+                roomEntry = new Room({ room_no: room, vacancy: 'Occupied' });
+            } else if (roomEntry.vacancy === 'Occupied') {
                 return res.status(400).json({ message: `Room ${room} is already occupied.` });
             } else {
-                roomEntry.status = 'Occupied';
+                roomEntry.vacancy = 'Occupied';
             }
             await roomEntry.save();
         }
@@ -76,7 +76,7 @@ router.patch('/reservations/:id', async (req, res) => {
             for (let room of reservation.room_no) {
                 let roomEntry = await Room.findOne({ room_no: room });
                 if (roomEntry) {
-                    roomEntry.status = 'Available';
+                    roomEntry.vacancy = 'Available';
                     await roomEntry.save();
                 }
             }
@@ -84,11 +84,11 @@ router.patch('/reservations/:id', async (req, res) => {
             for (let room of updatedData.room_no) {
                 let roomEntry = await Room.findOne({ room_no: room });
                 if (!roomEntry) {
-                    roomEntry = new Room({ room_no: room, status: 'Occupied' });
-                } else if (roomEntry.status === 'Occupied') {
+                    roomEntry = new Room({ room_no: room, vacancy: 'Occupied' });
+                } else if (roomEntry.vacancy === 'Occupied') {
                     return res.status(400).json({ message: `Room ${room} is already occupied.` });
                 } else {
-                    roomEntry.status = 'Occupied';
+                    roomEntry.vacancy = 'Occupied';
                 }
                 await roomEntry.save();
             }
@@ -110,12 +110,10 @@ router.delete('/reservations/:id', async (req, res) => {
         if (!reservation) {
             return res.status(404).json({ message: 'Reservation not found' });
         }
-
-        // Update rooms to 'Available'
         for (let room of reservation.room_no) {
             let roomEntry = await Room.findOne({ room_no: room });
             if (roomEntry) {
-                roomEntry.status = 'Available';
+                roomEntry.vacancy = 'Available';
                 await roomEntry.save();
             }
         }
