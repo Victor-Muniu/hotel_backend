@@ -3,46 +3,41 @@ const mongoose = require('mongoose');
 const supplierSchema = new mongoose.Schema({
     Kra_pin:{
         type: String,
-        required: true,
-        unique: true
+        required: false,
+        
     },
     Vat_no: {
         type: String,
-        required: true,
-        unique: true
+        required: false,
+        
     },
     address: {
         type: String,
-        required: true,
-        unique: true
+        required: false,
     },
     zip_code: {
         type: String,
-        required: true,
-        unique: true
+        required: false,
     },
     name: {
         type: String,
-        required: true,
-        unique: true
+        required: false,
     },
     contact_person: {
         type: String,
-        required: true
+        required: false,
     },
     credit_limit: {
         type: Number,
-        required: true
+        required: false,
     },
     email: {
         type: String,
-        required: true,
-        unique: true
+        required: false,
     },
     telephone_no: {
         type: String,
-        required: true,
-        unique: true
+        required: false,
     }
 })
 
