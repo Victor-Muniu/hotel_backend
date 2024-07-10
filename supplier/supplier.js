@@ -3,13 +3,11 @@ const mongoose = require('mongoose');
 const supplierSchema = new mongoose.Schema({
     Kra_pin:{
         type: String,
-        required: false,
-        
+        required: false,   
     },
     Vat_no: {
         type: String,
-        required: false,
-        
+        required: false,   
     },
     address: {
         type: String,
