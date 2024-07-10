@@ -1,6 +1,5 @@
 const mongoose = require('mongoose')
-
-const chefLadderSchema = new mongoose.Schema({
+const alcarteSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
@@ -37,5 +36,5 @@ const chefLadderSchema = new mongoose.Schema({
     }
 })
 
-const CheffsLadder = mongoose.model('CheffsLadder', chefLadderSchema)
-module.exports = CheffsLadder
+const Alcarte = mongoose.model('Alcarte', alcarteSchema)
+module.exports = Alcarte

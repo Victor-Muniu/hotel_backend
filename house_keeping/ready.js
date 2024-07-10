@@ -1,6 +1,5 @@
 const mongoose = require('mongoose')
-
-const chefLadderSchema = new mongoose.Schema({
+const linenSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
@@ -37,5 +36,5 @@ const chefLadderSchema = new mongoose.Schema({
     }
 })
 
-const CheffsLadder = mongoose.model('CheffsLadder', chefLadderSchema)
-module.exports = CheffsLadder
+const Linens = mongoose.model('Linens',linenSchema)
+module.exports = Linens

@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const HouseKeepingRequisition = require('../models/houseKeepingRequisition'); 
-const Item = require('../models/item'); 
+const HouseKeepingRequisition = require('../requisition/houseKeepingRequisition'); 
+const Item = require('../store/item'); 
+const Linens = require('../house_keeping/ready');
 
 router.post('/houseKeepingRequisitions', async (req, res) => {
     try {
@@ -35,6 +36,7 @@ router.post('/houseKeepingRequisitions', async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
+
 router.patch('/houseKeepingRequisitions/:id', async (req, res) => {
     try {
         const { itemName, quantity, unit, description, date, department, status } = req.body;
@@ -55,6 +57,31 @@ router.patch('/houseKeepingRequisitions/:id', async (req, res) => {
 
         item.quantity = item.quantity + requisition.quantity - quantity;
         await item.save();
+
+        if (status === 'Approved') {
+            // Check if Linens entry exists
+            let linens = await Linens.findOne({ name: item.name });
+
+            if (linens) {
+                // Update existing Linens entry
+                linens.quantity += quantity;
+                linens.value += item.unit_price * quantity;
+            } else {
+                // Create new Linens entry
+                linens = new Linens({
+                    name: item.name,
+                    description: item.description,
+                    group: item.group,
+                    unit_price: item.unit_price,
+                    quantity: quantity,
+                    spoilt: item.spoilt,
+                    value: item.unit_price * quantity,
+                    date: new Date()
+                });
+            }
+
+            await linens.save();
+        }
 
         requisition.itemID = item._id;
         requisition.quantity = quantity;
@@ -91,4 +118,33 @@ router.delete('/houseKeepingRequisitions/:id', async (req, res) => {
     }
 });
 
-module.exports = router
+router.get('/houseKeepingRequisitions', async (req, res) => {
+    try {
+        const requisitions = await HouseKeepingRequisition.find().populate('itemID');
+        const populatedRequisitions = requisitions.map(req => ({
+            ...req.toObject(),
+            itemName: req.itemID.name
+        }));
+        res.json(populatedRequisitions);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+
+router.get('/houseKeepingRequisitions/:id', async (req, res) => {
+    try {
+        const requisition = await HouseKeepingRequisition.findById(req.params.id).populate('itemID');
+        if (!requisition) {
+            return res.status(404).json({ message: 'Requisition not found' });
+        }
+        res.json({
+            ...requisition.toObject(),
+            itemName: requisition.itemID.name
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+module.exports = router;

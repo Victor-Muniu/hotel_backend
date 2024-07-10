@@ -9,7 +9,7 @@ router.post('/items', async (req, res) => {
         const newItem = new Item(req.body);
         newItem.value = newItem.quantity * newItem.unit_price;
 
-        if (newItem.group === "Curio" || newItem.group === "Banquetting" || newItem.group === "Bar" || newItem.group === 'Restaurant') {
+        if (newItem.group === "Curio" || newItem.group === "Banquetting" || newItem.group === "Bar" || newItem.group === 'Restaurant' || newItem.group === 'House Keeping') {
             const existingItem = await Transfer.findOne({ name: newItem.name });
 
             if (existingItem) {
