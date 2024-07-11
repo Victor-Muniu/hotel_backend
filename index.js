@@ -48,6 +48,8 @@ const laundryServiceBillRouter = require('./routes/laundryServiceBillRouter.js')
 const houseKeepingRequisition = require('./routes/housekeepingRequisitionRoute.js')
 const linensRouter =require('./routes/linensRouter.js')
 const alcarteRouter = require('./routes/alcarteRoute.js')
+const frontOfficeRequisitionRouter =require('./routes/frontOfficeRequisitionRouter.js')
+const backOfficeRequisitions = require('./routes/backofficeRequisitionRouter.js')
 const app = express();
 app.use(express.json());
  
@@ -105,6 +107,8 @@ app.use('', laundryServiceBillRouter)
 app.use('', houseKeepingRequisition)
 app.use('', linensRouter)
 app.use('', alcarteRouter)
+app.use('',frontOfficeRequisitionRouter)
+app.use('', backOfficeRequisitions)
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

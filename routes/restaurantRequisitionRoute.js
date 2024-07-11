@@ -45,15 +45,16 @@ router.patch('/restaurantRequisitions/:id', async (req, res) => {
                 return res.status(400).json({ message: 'Insufficient quantity in stock' });
             }
 
-            // Check if Alcarte entry exists
+
+            
             let alcarte = await Alcarte.findOne({ name: item.name });
 
             if (alcarte) {
-                // Update existing Alcarte entry
+
                 alcarte.quantity += quantity;
                 alcarte.value += item.unit_price * quantity;
             } else {
-                // Create new Alcarte entry
+          
                 alcarte = new Alcarte({
                     name: item.name,
                     description: item.description,

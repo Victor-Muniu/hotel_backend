@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Reservation = require('../reservations/reservation');
 const Room = require('../house_keeping/rooms');
+const CheckOut = require('../reservations/checkout')
 
 router.post('/reservations', async (req, res) => {
     try {
@@ -110,16 +111,29 @@ router.delete('/reservations/:id', async (req, res) => {
         if (!reservation) {
             return res.status(404).json({ message: 'Reservation not found' });
         }
+        const checkOutDetails = new CheckOut({
+            fname: reservation.individual ? reservation.individual.fname : '',
+            lname: reservation.individual ? reservation.individual.lname : '',
+            national_id: reservation.individual ? reservation.individual.national_id : '',
+            contact: reservation.individual ? reservation.individual.contact : '',
+            email: reservation.individual ? reservation.individual.email : ''
+        });
+
+        
+        await checkOutDetails.save();
+
         for (let room of reservation.room_no) {
             let roomEntry = await Room.findOne({ room_no: room });
             if (roomEntry) {
                 roomEntry.vacancy = 'Available';
+                roomEntry.clean = 'No';
                 await roomEntry.save();
             }
         }
 
         await Reservation.findByIdAndDelete(req.params.id);
-        res.json({ message: 'Reservation deleted' });
+
+        res.json({ message: 'Reservation deleted and checked out details saved' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

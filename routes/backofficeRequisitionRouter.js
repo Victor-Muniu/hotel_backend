@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const FoodProductionRequisition = require('../requisition/foodproductionRequisition');
+const BackOfficeRequisition = require('../requisition/backOffice');
 const Item = require('../store/item');
-const CheffsLadder = require('../food_production/chefsLadder');
+const Back2 = require('../reservations/back2');
 
-router.post('/foodProductionRequisitions', async (req, res) => {
+router.post('/backOfficeRequisitions', async (req, res) => {
     try {
         const { itemName, quantity, unit, description, date, department, status } = req.body;
 
@@ -17,7 +17,7 @@ router.post('/foodProductionRequisitions', async (req, res) => {
             return res.status(400).json({ message: 'Insufficient quantity available' });
         }
 
-        const newRequisition = new FoodProductionRequisition({
+        const newRequisition = new BackOfficeRequisition({
             itemID: item._id,
             quantity,
             unit,
@@ -29,7 +29,7 @@ router.post('/foodProductionRequisitions', async (req, res) => {
 
         await newRequisition.save();
 
-        
+       
 
         res.status(201).json(newRequisition);
     } catch (err) {
@@ -37,13 +37,13 @@ router.post('/foodProductionRequisitions', async (req, res) => {
     }
 });
 
-router.patch('/foodProductionRequisitions/:id', async (req, res) => {
+router.patch('/backOfficeRequisitions/:id', async (req, res) => {
     try {
-        const { itemName, quantity, unit, description, date, department, status } = req.body;
+        const { itemName, quantity, unit, description, department, status, date } = req.body;
 
-        const requisition = await FoodProductionRequisition.findById(req.params.id);
+        const requisition = await BackOfficeRequisition.findById(req.params.id);
         if (!requisition) {
-            return res.status(404).json({ message: 'Food production requisition not found' });
+            return res.status(404).json({ message: 'Back office requisition not found' });
         }
 
         const item = await Item.findOne({ name: itemName });
@@ -56,16 +56,13 @@ router.patch('/foodProductionRequisitions/:id', async (req, res) => {
                 return res.status(400).json({ message: 'Insufficient quantity in stock' });
             }
 
-            // Check if CheffsLadder entry exists
-            let cheffsLadder = await CheffsLadder.findOne({ name: item.name });
+            let back2 = await Back2.findOne({ name: item.name });
 
-            if (cheffsLadder) {
-                // Update existing CheffsLadder entry
-                cheffsLadder.quantity += quantity;
-                cheffsLadder.value += item.unit_price * quantity;
+            if (back2) {
+                back2.quantity += quantity;
+                back2.value += item.unit_price * quantity;
             } else {
-                // Create new CheffsLadder entry
-                cheffsLadder = new CheffsLadder({
+                back2 = new Back2({
                     name: item.name,
                     description: item.description,
                     group: item.group,
@@ -77,16 +74,13 @@ router.patch('/foodProductionRequisitions/:id', async (req, res) => {
                 });
             }
 
-            await cheffsLadder.save();
+            await back2.save();
 
-            // Update item quantity
             item.quantity -= quantity;
             await item.save();
         }
 
-        if (itemName) {
-            requisition.itemID = item._id;
-        }
+        if (itemName) requisition.itemID = item._id;
         if (quantity) requisition.quantity = quantity;
         if (unit) requisition.unit = unit;
         if (description) requisition.description = description;
@@ -101,9 +95,9 @@ router.patch('/foodProductionRequisitions/:id', async (req, res) => {
     }
 });
 
-router.get('/foodProductionRequisitions', async (req, res) => {
+router.get('/backOfficeRequisitions', async (req, res) => {
     try {
-        const requisitions = await FoodProductionRequisition.find().populate('itemID');
+        const requisitions = await BackOfficeRequisition.find().populate('itemID');
         const populatedRequisitions = requisitions.map(req => ({
             ...req.toObject(),
             itemName: req.itemID.name
@@ -114,11 +108,11 @@ router.get('/foodProductionRequisitions', async (req, res) => {
     }
 });
 
-router.get('/foodProductionRequisitions/:id', async (req, res) => {
+router.get('/backOfficeRequisitions/:id', async (req, res) => {
     try {
-        const requisition = await FoodProductionRequisition.findById(req.params.id).populate('itemID');
+        const requisition = await BackOfficeRequisition.findById(req.params.id).populate('itemID');
         if (!requisition) {
-            return res.status(404).json({ message: 'Food production requisition not found' });
+            return res.status(404).json({ message: 'Back office requisition not found' });
         }
         res.json({
             ...requisition.toObject(),
@@ -129,11 +123,11 @@ router.get('/foodProductionRequisitions/:id', async (req, res) => {
     }
 });
 
-router.delete('/foodProductionRequisitions/:id', async (req, res) => {
+router.delete('/backOfficeRequisitions/:id', async (req, res) => {
     try {
-        const requisition = await FoodProductionRequisition.findById(req.params.id);
+        const requisition = await BackOfficeRequisition.findById(req.params.id);
         if (!requisition) {
-            return res.status(404).json({ message: 'Food production requisition not found' });
+            return res.status(404).json({ message: 'Back office requisition not found' });
         }
 
         const item = await Item.findById(requisition.itemID);
@@ -143,7 +137,7 @@ router.delete('/foodProductionRequisitions/:id', async (req, res) => {
         }
 
         await requisition.deleteOne();
-        res.json({ message: 'Food production requisition deleted' });
+        res.json({ message: 'Back office requisition deleted' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
