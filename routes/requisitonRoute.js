@@ -80,6 +80,7 @@ router.post('/requisitions', async (req, res) => {
 
         res.status(201).json(newRequisition);
     } catch (err) {
+        console.error('Error saving requisition:', err);
         res.status(400).json({ message: err.message });
     }
 });

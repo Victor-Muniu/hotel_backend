@@ -99,14 +99,14 @@ router.get('/reservation-bills/room/:room_no', async (req, res) => {
     try {
         const reservations = await Reservation.find({ room_no: room_no });
         if (!reservations || reservations.length === 0) {
-            return res.status(404).json({ message: 'No reservations found for this room number' });
+            return res.status (200).json([])
         }
 
         const reservationIDs = reservations.map(reservation => reservation._id);
         const bills = await ReservationBills.find({ reservationID: { $in: reservationIDs } }).populate('reservationID');
         
         if (!bills || bills.length === 0) {
-            return res.status(404).json({ message: 'No reservation bills found for this room number' });
+            return res.status(200).json([]);
         }
 
         res.json(bills);
