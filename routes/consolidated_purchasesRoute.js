@@ -15,8 +15,8 @@ const upload = multer({ storage: storage });
 
 router.post('/consolidated-purchases', async (req, res) => {
     try {
-        const { category, quantity, price, date, amount, vendor } = req.body;
-        const newEntry = new Consolidated_purchases({ category, quantity, price, date, amount,vendor });
+        const {date, amount, vendor } = req.body;
+        const newEntry = new Consolidated_purchases({ date, amount, vendor });
         await newEntry.save();
 
         await updateFinancials('Purchases', amount, new Date(date), 'debit');
@@ -110,9 +110,6 @@ router.post('/upload-consolidated-purchases', upload.single('file'), async (req,
         const vendorsArray = Array.from(vendors);
 
         const transactions = jsonData.slice(1).map(row => ({
-            category: row[0], 
-            quantity: Number(row[2]), 
-            price: Number(row[3]), 
             date: parseExcelDate(row[1]), 
             amount: Number(row[4]),
             vendor: row[5], 
