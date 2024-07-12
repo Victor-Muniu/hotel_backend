@@ -113,10 +113,13 @@ router.post('/upload-consolidated-purchases', upload.single('file'), async (req,
             category: row[0], 
             quantity: Number(row[2]), 
             price: Number(row[3]), 
-            date: new Date(row[1]), 
+            date: parseExcelDate(row[1]), 
             amount: Number(row[4]),
             vendor: row[5], 
         }));
+        transactions.forEach(transaction => {
+            console.log(`Date: ${transaction.date}`);
+        });
 
         for (const transaction of transactions) {
             const newEntry = new Consolidated_purchases(transaction);
@@ -144,6 +147,11 @@ router.post('/upload-consolidated-purchases', upload.single('file'), async (req,
         res.status(400).send(error.message);
     }
 });
+
+function parseExcelDate(excelDate) {
+    const excelTimestamp = Number(excelDate);
+    return new Date((excelTimestamp - (25567 + 2)) * 86400 * 1000);
+}
 
 router.post('/upload-items', upload.single('file'), async (req, res) => {
     if (!req.file || !req.file.buffer) {
