@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const payrollSchema = new mongoose.Schema({
+    date: {
+        type: Date,
+        required: true
+    },
     gross_income: {
         type: Number,
         required: true
