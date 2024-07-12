@@ -15,8 +15,8 @@ const upload = multer({ storage: storage });
 
 router.post('/consolidated-purchases', async (req, res) => {
     try {
-        const { category, quantity, price, date, amount } = req.body;
-        const newEntry = new Consolidated_purchases({ category, quantity, price, date, amount });
+        const { category, quantity, price, date, amount, vendor } = req.body;
+        const newEntry = new Consolidated_purchases({ category, quantity, price, date, amount,vendor });
         await newEntry.save();
 
         await updateFinancials('Purchases', amount, new Date(date), 'debit');
