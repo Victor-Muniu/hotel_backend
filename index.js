@@ -50,6 +50,7 @@ const linensRouter =require('./routes/linensRouter.js')
 const alcarteRouter = require('./routes/alcarteRoute.js')
 const frontOfficeRequisitionRouter =require('./routes/frontOfficeRequisitionRouter.js')
 const backOfficeRequisitions = require('./routes/backofficeRequisitionRouter.js')
+const carrageInwardsRouter = require('./routes/carrageInwardRoute.js')
 const app = express();
 app.use(express.json());
  
@@ -109,6 +110,7 @@ app.use('', linensRouter)
 app.use('', alcarteRouter)
 app.use('',frontOfficeRequisitionRouter)
 app.use('', backOfficeRequisitions)
+app.use('', carrageInwardsRouter)
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
