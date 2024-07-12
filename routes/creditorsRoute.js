@@ -3,6 +3,24 @@ const router = express.Router();
 const Creditors = require('../accounts/creditors');
 
 
+router.post('/creditors', async (req, res) => {
+    try {
+        const { vendor, date, amount } = req.body;
+        
+        const newCreditor = new Creditors({
+            vendor,
+            date,
+            amount
+        });
+
+        await newCreditor.save();
+        res.status(201).json(newCreditor);
+    } catch (err) {
+        res.status(400).json({ message: err.message });
+    }
+});
+
+
 
 router.get('/creditors', async (req, res) => {
     try {

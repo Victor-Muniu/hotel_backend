@@ -3,7 +3,7 @@ const Staff = require('../models/staff.js');
 
 const router = express.Router();
 
-// GET all staff
+
 router.get('/staff', async (req, res) => {
     try {
         const staff = await Staff.find();
@@ -13,12 +13,11 @@ router.get('/staff', async (req, res) => {
     }
 });
 
-// GET one staff by id
 router.get('/staff/:id', getStaff, (req, res) => {
     res.json(res.staff);
 });
 
-// POST create a new staff
+
 router.post('/staff', async (req, res) => {
     const staff = new Staff({
         fname: req.body.fname,
