@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Item = require('../store/item');
-const Transfer = require('../transfer/drinks')
+const Transfer = require('../transfer/drinks');
 const StockMovement = require('../store/stockTracker');
 
 router.post('/items', async (req, res) => {
@@ -9,7 +9,9 @@ router.post('/items', async (req, res) => {
         const newItem = new Item(req.body);
         newItem.value = newItem.quantity * newItem.unit_price;
 
-        if (newItem.group === "Curio" || newItem.group === "Banquetting" || newItem.group === "Bar" || newItem.group === 'Restaurant' || newItem.group === 'House Keeping') {
+        const transferGroups = ["Curio", "Banquetting", "Bar", "Restaurant", "House Keeping", "Internal"];
+
+        if (transferGroups.includes(newItem.group)) {
             const existingItem = await Transfer.findOne({ name: newItem.name });
 
             if (existingItem) {
@@ -33,7 +35,7 @@ router.post('/items', async (req, res) => {
                     date: newItem.date
                 });
                 await newTransferItem.save();
-                
+
                 res.status(201).json(newTransferItem);
             }
         } else {
@@ -54,8 +56,6 @@ router.post('/items', async (req, res) => {
     }
 });
 
-
-
 router.get('/items', async (req, res) => {
     try {
         const items = await Item.find();
@@ -64,7 +64,6 @@ router.get('/items', async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 });
-
 
 router.get('/items/:id', async (req, res) => {
     try {
@@ -77,7 +76,6 @@ router.get('/items/:id', async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 });
-
 
 router.patch('/items/:id', async (req, res) => {
     try {
@@ -116,7 +114,7 @@ router.patch('/items/:id', async (req, res) => {
     }
 });
 
-router.delete('/items/:id',async (req, res) => {
+router.delete('/items/:id', async (req, res) => {
     try {
         const item = await Item.findById(req.params.id);
         if (!item) {
