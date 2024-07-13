@@ -16,6 +16,11 @@ const salesSchema = new mongoose.Schema({
         ref: 'RestaurantBill',
         required: false
     },
+    reservationsBillsId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ReservationBills',
+        required: false
+    },
     amount: {
         type: Number,
         required: true

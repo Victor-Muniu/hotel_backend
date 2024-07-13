@@ -5,8 +5,16 @@ const banquettingInvoiceSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    discount: {
+        type: [Number],
+        required: true
+    },
+    price: {
+        type: [Number],
+        required: true
+    }, 
     packs: {
-        type: Number,
+        type: [Number],
         required: true
     },
     Totalamount: {

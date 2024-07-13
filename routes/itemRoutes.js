@@ -6,7 +6,8 @@ const StockMovement = require('../store/stockTracker');
 
 router.post('/items', async (req, res) => {
     try {
-        const newItem = new Item(req.body);
+        const { name, description, group, unit_price, quantity, spoilt, date } = req.body;
+        let newItem = new Item(req.body);
         newItem.value = newItem.quantity * newItem.unit_price;
 
         const transferGroups = ["Curio", "Banquetting", "Bar", "Restaurant", "House Keeping", "Internal"];
@@ -20,6 +21,7 @@ router.post('/items', async (req, res) => {
                 existingItem.quantity += newItem.quantity;
                 existingItem.spoilt += newItem.spoilt;
                 existingItem.value = existingItem.quantity * existingItem.unit_price;
+                existingItem.date = newItem.date;
                 await existingItem.save();
 
                 res.status(201).json(existingItem);
@@ -39,17 +41,39 @@ router.post('/items', async (req, res) => {
                 res.status(201).json(newTransferItem);
             }
         } else {
-            await newItem.save();
+            const existingItem = await Item.findOne({ name: newItem.name });
 
-            const stockMovement = new StockMovement({
-                itemId: newItem._id,
-                quantity: newItem.quantity,
-                movementType: 'purchase',
-                date: newItem.date
-            });
-            await stockMovement.save();
+            if (existingItem) {
+                existingItem.description = description;
+                existingItem.unit_price = unit_price;
+                existingItem.quantity += quantity;
+                existingItem.spoilt += spoilt;
+                existingItem.value = existingItem.quantity * existingItem.unit_price;
+                existingItem.date = date;
+                await existingItem.save();
 
-            res.status(201).json(newItem);
+                const stockMovement = new StockMovement({
+                    itemId: existingItem._id,
+                    quantity,
+                    movementType: 'purchase',
+                    date
+                });
+                await stockMovement.save();
+
+                res.status(201).json(existingItem);
+            } else {
+                await newItem.save();
+
+                const stockMovement = new StockMovement({
+                    itemId: newItem._id,
+                    quantity: newItem.quantity,
+                    movementType: 'purchase',
+                    date: newItem.date
+                });
+                await stockMovement.save();
+
+                res.status(201).json(newItem);
+            }
         }
     } catch (err) {
         res.status(400).json({ message: err.message });
