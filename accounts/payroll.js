@@ -28,7 +28,6 @@ const payrollSchema = new mongoose.Schema({
     staff_Id: {
         type: String,
         required: true,
-        unique: true
     }
 })
 
