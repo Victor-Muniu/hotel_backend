@@ -30,6 +30,16 @@ router.patch('/clubBills/:id', async (req, res) => {
         if (!updatedBill) {
             return res.status(404).json({ message: 'Club bill not found' });
         }
+        if (updatedBill.status === 'Cleared') {
+
+            const table = await Table.findById(updatedBill.tableId);
+
+            if (table) {
+
+                table.status = 'Available';
+                await table.save();
+            }
+        }
 
         res.json(updatedBill);
     } catch (err) {
