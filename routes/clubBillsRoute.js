@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const ClubBill = require('../sales/clubBills')
+const Table = require('../models/table')
 
 router.get('/clubBills', async (req, res) => {
     try {
