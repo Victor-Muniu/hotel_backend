@@ -4,24 +4,37 @@ const BanquettingInvoice = require('../banquetting/banquettingInvoice');
 const Banquetting = require('../banquetting/banquetting');
 
 
+function calculateTotalAmount(prices, discounts, packs) {
+    let totalAmount = 0;
+    for (let i = 0; i < prices.length; i++) {
+        const price = prices[i];
+        const discount = discounts[i] || 0;
+        const pack = packs[i];
+        totalAmount += (price - discount) * pack;
+    }
+    return totalAmount;
+}
+
 router.post('/banquettinginvoices', async (req, res) => {
     try {
-        const { banquettingName, packs, Totalamount } = req.body;
+        const { booking_no, discount, price, packs, Totalamount } = req.body;
 
-        const banquetting = await Banquetting.findOne({ name: banquettingName });
+        const banquetting = await Banquetting.findOne({ booking_no: booking_no });
         if (!banquetting) {
             return res.status(404).json({ message: 'Banquetting not found' });
         }
 
+        const calculatedTotalAmount = Totalamount || calculateTotalAmount(price, discount, packs);
+
         const newBanquettingInvoice = new BanquettingInvoice({
             banquettingId: banquetting._id,
+            discount,
+            price,
             packs,
-            Totalamount
+            Totalamount: calculatedTotalAmount
         });
 
-
         await newBanquettingInvoice.save();
-
         res.status(201).json(newBanquettingInvoice);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -38,6 +51,39 @@ router.get('/banquettinginvoices', async (req, res) => {
 });
 
 
+router.get('/banquettinginvoices/:id', async (req, res) => {
+    try {
+        const banquettingInvoiceId = req.params.id;
+
+        const banquettingInvoice = await BanquettingInvoice.findById(banquettingInvoiceId);
+        if (!banquettingInvoice) {
+            return res.status(404).json({ message: 'Banquetting invoice not found' });
+        }
+
+        const banquettingId = banquettingInvoice.banquettingId;
+        const banquetting = await Banquetting.findById(banquettingId);
+        if (!banquetting) {
+            return res.status(404).json({ message: 'Banquetting not found' });
+        }
+
+        const response = {
+            banquettingId: banquetting._id,
+            booking_no: banquetting.booking_no,
+            name: banquetting.name,
+            workshopName: banquetting.workshopName,
+            reservedDates: banquetting.reservedDates,
+            checkout: banquetting.checkout,
+            prices: banquettingInvoice.price,
+            packs: banquettingInvoice.packs,
+            Totalamount: banquettingInvoice.Totalamount
+        };
+
+        res.json(response);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 router.get('/banquettinginvoices/:name', async (req, res) => {
     try {
         const banquettingName = req.params.name;
@@ -53,7 +99,7 @@ router.get('/banquettinginvoices/:name', async (req, res) => {
     }
 });
 
-// PATCH: Update a banquetting invoice by ID
+
 router.patch('/banquettinginvoices/:id', async (req, res) => {
     try {
         const updatedBanquettingInvoice = await BanquettingInvoice.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -66,7 +112,6 @@ router.patch('/banquettinginvoices/:id', async (req, res) => {
     }
 });
 
-// DELETE: Delete a banquetting invoice by ID
 router.delete('/banquettinginvoices/:id', async (req, res) => {
     try {
         const deletedBanquettingInvoice = await BanquettingInvoice.findByIdAndDelete(req.params.id);
