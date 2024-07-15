@@ -4,6 +4,7 @@ const RoomService = require('../reservations/room_service');
 const Menu = require('../models/menu');
 const TrialBalance = require('../accounts/trial_balance');
 const ProfitLoss = require('../accounts/profit&loss');
+const Sales = require('../accounts/sales')
 
 async function updateFinancialEntries(groupName, amount, date, action = 'add') {
     const year = date.getFullYear();
@@ -43,16 +44,13 @@ async function updateFinancialEntries(groupName, amount, date, action = 'add') {
     await profitLossEntry.save();
 }
 
-
-
-
 router.post('/room-services', async (req, res) => {
     try {
         const { menuItems, delivery_fee, room_no } = req.body;
 
         let totalPrice = 0;
         const menuIds = [];
-        const quantities = []; // Array to store quantities
+        const quantities = []; 
 
         for (const item of menuItems) {
             const menu = await Menu.findOne({ name: item.name });
@@ -77,7 +75,11 @@ router.post('/room-services', async (req, res) => {
 
         await newRoomService.save();
 
-        
+        const salesEntry = new Sales({
+            roomServiceId: newRoomService._id,
+            amount: totalPrice
+        });
+        await salesEntry.save();
 
         await updateFinancialEntries('Sales', totalPrice, new Date(), 'add');
 
@@ -86,6 +88,7 @@ router.post('/room-services', async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
+
 
 
 router.get('/room-services', async (req, res) => {

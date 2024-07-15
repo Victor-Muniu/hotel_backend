@@ -4,7 +4,7 @@ const ReservationBills = require('../sales/reservationsBills');
 const Reservation = require('../reservations/reservation');
 const TrialBalance = require('../accounts/trial_balance');
 const ProfitLoss = require('../accounts/profit&loss');
-
+const Sales = require('../accounts/sales')
 async function updateFinancialEntries(groupName, amount, date, action = 'add') {
     const year = date.getFullYear();
 

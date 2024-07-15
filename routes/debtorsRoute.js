@@ -4,7 +4,7 @@ const Banquetting = require('../banquetting/banquetting');
 const BanquettingInvoice = require('../banquetting/banquettingInvoice');
 const Debtors = require('../accounts/debtors');
 const GeneralLedger = require('../accounts/general_lenger');
-const TrialBalance = require('../accounts/trial_balance'); // Import TrialBalance model
+const TrialBalance = require('../accounts/trial_balance'); 
 
 async function updateMonthlyCreditor(creditor) {
     const { date, amount, category } = creditor;

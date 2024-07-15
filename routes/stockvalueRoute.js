@@ -1,52 +1,57 @@
+const mongoose = require('mongoose');
 const express = require('express');
 const router = express.Router();
 const StockValue = require('../accounts/stock_value'); 
 const BalanceSheet = require('../accounts/balancesheet'); 
+const Item = require('../store/item'); 
+const cron = require('node-cron');
 
 
-async function updateBalanceSheet(asset) {
-    const { date, amount } = asset;
-    const recordName =  'Stock Value';
 
-    let balanceSheetEntry = await BalanceSheet.findOne({ name: recordName });
+async function calculateAndPostStockValue() {
+    try {
 
-    if (!balanceSheetEntry) {
-        balanceSheetEntry = new BalanceSheet({
-            name: recordName,
-            category: 'Current Assets',
-            amount,
-            date: date
+        const items = await Item.find();
+        const totalStockValue = items.reduce((acc, item) => acc + (item.quantity * item.unit_price), 0);
+
+
+        const stockValue = new StockValue({
+            date: new Date(),
+            amount: totalStockValue
         });
-        
-    } else {
-        balanceSheetEntry.amount += amount;
+
+        await stockValue.save();
+
+        const recordName = 'Stock Value';
+        let balanceSheetEntry = await BalanceSheet.findOne({ name: recordName });
+
+        if (!balanceSheetEntry) {
+            balanceSheetEntry = new BalanceSheet({
+                name: recordName,
+                category: 'Current Assets',
+                amount: totalStockValue,
+                date: new Date()
+            });
+        } else {
+            balanceSheetEntry.amount = totalStockValue; 
+            balanceSheetEntry.date = new Date(); 
+        }
+
+        await balanceSheetEntry.save();
+
+        console.log('Stock value calculated and posted successfully:', totalStockValue);
+    } catch (err) {
+        console.error('Error calculating and posting stock value:', err);
     }
-
-    console.log(balanceSheetEntry)
-
-    await balanceSheetEntry.save();
 }
 
 
-router.post('/stock-values', async (req, res) => {
-    try {
-        const { date, amount } = req.body;
+calculateAndPostStockValue();
 
-        const newStockValue = new StockValue({
-            date,
-            amount
-        });
-
-        await newStockValue.save();
-        await updateBalanceSheet(newStockValue)
-        res.status(201).json(newStockValue);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
+cron.schedule('0 0 * * *', () => {
+    calculateAndPostStockValue();
 });
-
-
-router.get('/stockValues', async (req, res) => {
+router.get('/stock-values', async (req, res) => {
     try {
         const stockValues = await StockValue.find();
         res.json(stockValues);
@@ -55,7 +60,7 @@ router.get('/stockValues', async (req, res) => {
     }
 });
 
-router.get('/stockValues/:date', async (req, res) => {
+router.get('/stock-values/:date', async (req, res) => {
     try {
         const { date } = req.params;
         const stockValue = await StockValue.findOne({ date: new Date(date) });

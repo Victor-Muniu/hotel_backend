@@ -21,6 +21,16 @@ const salesSchema = new mongoose.Schema({
         ref: 'ReservationBills',
         required: false
     },
+    roomServiceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'RoomService',
+        required: false
+    },
+    laundryServiceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'LaundryServiceBill',
+        required: false
+    },
     amount: {
         type: Number,
         required: true

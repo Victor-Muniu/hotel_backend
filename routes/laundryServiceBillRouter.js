@@ -5,7 +5,7 @@ const LaundryService = require('../reservations/laundry_service');
 const Room = require('../house_keeping/rooms');
 const TrialBalance = require('../accounts/trial_balance');
 const ProfitLoss = require('../accounts/profit&loss');
-
+const Sales = require('../accounts/sales')
 async function updateFinancialEntries(groupName, amount, date, action = 'add') {
     const year = date.getFullYear();
 
@@ -110,6 +110,13 @@ router.post('/laundry-service-bills', async (req, res) => {
         });
         await newBill.save();
 
+        const salesEntry = new Sales({
+            laundryServiceId: newBill._id,
+            amount: total
+        });
+        await salesEntry.save();
+
+   
         await updateFinancialEntries('Sales', total, new Date(), 'add');
 
         res.status(201).json(newBill);
