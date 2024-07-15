@@ -94,6 +94,7 @@ router.get('/banquettinginvoices/:id', async (req, res) => {
             workshopName: banquetting.workshopName,
             reservedDates: banquetting.reservedDates,
             checkout: banquetting.checkout,
+            package:banquetting.package_type,
             prices: banquettingInvoice.price,
             packs: banquettingInvoice.packs,
             Totalamount: banquettingInvoice.Totalamount

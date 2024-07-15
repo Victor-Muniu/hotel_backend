@@ -6,7 +6,8 @@ const debtorsSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'BanquettingInvoice',
         required: true
-    }
+    },
+    
 });
 
 const Debtors = mongoose.model('Debtors', debtorsSchema);
