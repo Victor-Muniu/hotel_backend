@@ -43,13 +43,34 @@ router.post('/banquettinginvoices', async (req, res) => {
 
 router.get('/banquettinginvoices', async (req, res) => {
     try {
-        const banquettingInvoices = await BanquettingInvoice.find();
-        res.json(banquettingInvoices);
+        const banquettingInvoices = await BanquettingInvoice.find().populate('banquettingId');
+        if (!banquettingInvoices.length) {
+            return res.status(404).json({ message: 'No banquetting invoices found' });
+        }
+
+        const response = await Promise.all(banquettingInvoices.map(async invoice => {
+            const banquetting = await Banquetting.findById(invoice.banquettingId);
+            return {
+                invoiceId: invoice._id,
+                discount: invoice.discount,
+                price: invoice.price,
+                packs: invoice.packs,
+                Totalamount: invoice.Totalamount,
+                banquettingDetails: banquetting ? {
+                    booking_no: banquetting.booking_no,
+                    name: banquetting.name,
+                    workshopName: banquetting.workshopName,
+                    reservedDates: banquetting.reservedDates,
+                    checkout: banquetting.checkout
+                } : {}
+            };
+        }));
+
+        res.json(response);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(500).json({ message: 'Server error: ' + err.message });
     }
 });
-
 
 router.get('/banquettinginvoices/:id', async (req, res) => {
     try {
