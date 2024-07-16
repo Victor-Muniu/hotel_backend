@@ -7,21 +7,21 @@ const GeneralLedger = require('../accounts/general_lenger');
 const TrialBalance = require('../accounts/trial_balance'); 
 
 async function updateMonthlyCreditor(creditor) {
-    const { date, amount, category } = creditor;
+    const { date, amount } = creditor;
 
     const creditorMonth = date.getMonth();
     const creditorYear = date.getFullYear();
 
-    let ledgerEntry = await GeneralLedger.findOne({ category: `${creditorYear}-${creditorMonth}` });
+    let ledgerEntry = await GeneralLedger.findOne({ category: `Debtors-${creditorYear}-${creditorMonth}` });
 
     if (!ledgerEntry) {
         ledgerEntry = new GeneralLedger({
             category: `Debtors`, 
             date: new Date(), 
-            amount: -amount,
+            amount: amount,  // Use the amount directly
         });
     } else {
-        ledgerEntry.amount -= amount;
+        ledgerEntry.amount += amount;  // Add the amount instead of subtracting
     }
 
     await ledgerEntry.save();
@@ -39,7 +39,7 @@ async function updateTrialBalance(debitAmount) {
             Date: new Date()
         });
     } else {
-        trialBalanceEntry.Debit += debitAmount;
+        trialBalanceEntry.Debit += debitAmount;  // Add the amount directly
     }
 
     await trialBalanceEntry.save();

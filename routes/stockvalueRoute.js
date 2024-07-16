@@ -4,6 +4,7 @@ const router = express.Router();
 const StockValue = require('../accounts/stock_value'); 
 const BalanceSheet = require('../accounts/balancesheet'); 
 const Item = require('../store/item'); 
+const GeneralLedger = require('../accounts/general_lenger')
 const cron = require('node-cron');
 
 
@@ -24,6 +25,8 @@ async function calculateAndPostStockValue() {
 
         const recordName = 'Stock Value';
         let balanceSheetEntry = await BalanceSheet.findOne({ name: recordName });
+        
+        
 
         if (!balanceSheetEntry) {
             balanceSheetEntry = new BalanceSheet({
@@ -39,6 +42,17 @@ async function calculateAndPostStockValue() {
 
         await balanceSheetEntry.save();
 
+        await GeneralLedger.deleteOne({ category: 'Stock Value' });
+
+        const newLedgerEntry = new GeneralLedger({
+            category: 'Stock Value',
+            date: new Date(),
+            amount: totalStockValue
+        });
+
+        await newLedgerEntry.save();
+
+        
         console.log('Stock value calculated and posted successfully:', totalStockValue);
     } catch (err) {
         console.error('Error calculating and posting stock value:', err);
