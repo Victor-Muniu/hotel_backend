@@ -18,10 +18,10 @@ async function updateMonthlyCreditor(creditor) {
         ledgerEntry = new GeneralLedger({
             category: `Debtors`, 
             date: new Date(), 
-            amount: amount,  // Use the amount directly
+            amount: amount,  
         });
     } else {
-        ledgerEntry.amount += amount;  // Add the amount instead of subtracting
+        ledgerEntry.amount += amount;  
     }
 
     await ledgerEntry.save();
@@ -39,7 +39,7 @@ async function updateTrialBalance(debitAmount) {
             Date: new Date()
         });
     } else {
-        trialBalanceEntry.Debit += debitAmount;  // Add the amount directly
+        trialBalanceEntry.Debit += debitAmount;  
     }
 
     await trialBalanceEntry.save();

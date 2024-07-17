@@ -63,18 +63,29 @@ router.get('/payrolls', async (req, res) => {
     }
 });
 
-router.get('/payrolls/:id',  async (req, res) => {
+router.get('/payrolls/:id', async (req, res) => {
     try {
-        const payroll = await Payroll.findById(req.params.id);
+        const payroll = await Payroll.findById(req.params.id).populate('staff_Id');
         if (!payroll) {
             return res.status(404).json({ message: 'Payroll not found' });
         }
-        res.json(payroll);
+
+        const staff = await Staff.findById(payroll.staff_Id);
+        if (!staff) {
+            return res.status(404).json({ message: 'Staff not found' });
+        }
+
+        const payrollWithName = {
+            ...payroll.toObject(),
+            fname: staff.fname,
+            lname: staff.lname
+        };
+
+        res.json(payrollWithName);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 });
-
 
 router.patch('/payrolls/:id', async (req, res) => {
     try {
