@@ -78,7 +78,8 @@ router.get('/payrolls/:id', async (req, res) => {
         const payrollWithName = {
             ...payroll.toObject(),
             fname: staff.fname,
-            lname: staff.lname
+            lname: staff.lname,
+            emp_no: staff.emp_no
         };
 
         res.json(payrollWithName);
