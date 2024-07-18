@@ -1,18 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const Creditors = require('../accounts/creditors');
-const TrialBalance = require('../accounts/trial_balance')
+const TrialBalance = require('../accounts/trial_balance');
 
 router.post('/creditors', async (req, res) => {
     try {
         const { vendor, date, amount } = req.body;
-        
+
         const newCreditor = new Creditors({
             vendor,
             date,
             amount
         });
-        let trialBalanceEntry = await TrialBalance.findOne({ group_name: 'Debtors', Date: { $gte: new Date(currentYear, 0, 1), $lt: new Date(currentYear + 1, 0, 1) } });
+
+        const currentYear = new Date().getFullYear(); // Define currentYear here
+
+        let trialBalanceEntry = await TrialBalance.findOne({
+            group_name: 'Debtors',
+            Date: {
+                $gte: new Date(currentYear, 0, 1),
+                $lt: new Date(currentYear + 1, 0, 1)
+            }
+        });
+
         if (!trialBalanceEntry) {
             trialBalanceEntry = new TrialBalance({
                 group_name: 'Credit',
@@ -23,17 +33,15 @@ router.post('/creditors', async (req, res) => {
         } else {
             trialBalanceEntry.Credit += amount;  
         }
-    
-        await trialBalanceEntry.save();
 
+        await trialBalanceEntry.save();
         await newCreditor.save();
+
         res.status(201).json(newCreditor);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
-
-
 
 router.get('/creditors', async (req, res) => {
     try {
