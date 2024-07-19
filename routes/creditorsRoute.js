@@ -13,10 +13,10 @@ router.post('/creditors', async (req, res) => {
             amount
         });
 
-        const currentYear = new Date().getFullYear(); // Define currentYear here
+        const currentYear = new Date().getFullYear(); 
 
         let trialBalanceEntry = await TrialBalance.findOne({
-            group_name: 'Debtors',
+            group_name: 'Creditors',
             Date: {
                 $gte: new Date(currentYear, 0, 1),
                 $lt: new Date(currentYear + 1, 0, 1)

@@ -24,10 +24,6 @@ const paymentVoucherSchema = new mongoose.Schema({
         enum: ['Pending', 'Authorized', 'Rejected'],
         default: 'Pending'
     },
-    password: {
-        type: String,
-        required: true
-    },
     createdAt: {
         type: Date,
         default: Date.now
@@ -39,8 +35,5 @@ const paymentVoucherSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
-
-
-
 
 module.exports = mongoose.model('PaymentVoucher', paymentVoucherSchema);

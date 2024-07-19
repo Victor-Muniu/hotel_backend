@@ -51,6 +51,7 @@ const alcarteRouter = require('./routes/alcarteRoute.js')
 const frontOfficeRequisitionRouter =require('./routes/frontOfficeRequisitionRouter.js')
 const backOfficeRequisitions = require('./routes/backofficeRequisitionRouter.js')
 const carrageInwardsRouter = require('./routes/carrageInwardRoute.js')
+const payment_voucherRouter = require('./routes/payment_voucherRoute.js')
 const app = express();
 app.use(express.json());
  
@@ -111,6 +112,7 @@ app.use('', alcarteRouter)
 app.use('',frontOfficeRequisitionRouter)
 app.use('', backOfficeRequisitions)
 app.use('', carrageInwardsRouter)
+app.use('', payment_voucherRouter)
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
