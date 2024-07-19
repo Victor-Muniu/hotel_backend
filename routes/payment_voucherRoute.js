@@ -92,4 +92,13 @@ router.get('/payment-vouchers/:id', async (req, res) => {
     }
 });
 
+router.get('/payment-vouchers', async (req, res) => {
+    try {
+        const paymentVouchers = await PaymentVoucher.find();
+        res.json(paymentVouchers);
+    } catch (err) {
+        
+        res.status(400).json({ message: err.message });
+    }
+});
 module.exports = router;
