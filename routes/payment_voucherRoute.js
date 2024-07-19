@@ -8,19 +8,19 @@ const TrialBalance = require('../accounts/trial_balance');
 
 router.post('/payment-vouchers', async (req, res) => {
     try {
-        const { creditorsId, amount, authorizedBy } = req.body;
+        const { creditorsId, amount, emp_no } = req.body;
 
+        
         const staff = await Staff.findOne({ emp_no });
         if (!staff) {
             return res.status(404).json({ message: 'Staff not found' });
         }
 
-
-
+        
         const newPaymentVoucher = new PaymentVoucher({
             creditorsId,
             amount,
-            authorizedBy: staff._id
+            authorizedBy: staff._id  
         });
 
         await newPaymentVoucher.save();
@@ -30,6 +30,7 @@ router.post('/payment-vouchers', async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
+
 
 router.patch('/payment-vouchers/:id/authorize', async (req, res) => {
     try {
