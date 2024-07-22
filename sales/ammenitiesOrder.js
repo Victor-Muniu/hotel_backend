@@ -2,16 +2,16 @@ const mongoose = require('mongoose')
 
 const ammenitiesOrderSchema = new mongoose.Schema({
     ammenitiesId: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: [mongoose.Schema.Types.ObjectId],
         ref: 'Ammenities',
         required: true
     },
     age_group: {
-        type: String,
+        type: [String],
         required: true
     },
     quantity: {
-        type: Number,
+        type: [Number],
         required: true
     },
     date: {

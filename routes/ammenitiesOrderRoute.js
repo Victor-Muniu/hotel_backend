@@ -47,41 +47,50 @@ async function updateFinancialEntries(groupName, amount, date, action = 'add') {
 
 router.post('/ammenitiesOrders', async (req, res) => {
     try {
-        const { ammenitiesName, staffName, age_group, quantity, date } = req.body;
+        const { ammenities, staffName, date } = req.body;
 
-        const ammenity = await Ammenities.findOne({ name: ammenitiesName, age_group });
-        if (!ammenity) {
-            return res.status(404).json({ message: 'Ammenity not found' });
-        }
-
-        const staff = await Staff.findOne({ fname: staffName });
+        const staff = await Staff.findOne({ fname: staffName.split(' ')[0], lname: staffName.split(' ')[1] });
         if (!staff) {
             return res.status(404).json({ message: 'Staff member not found' });
         }
 
-        const amount = ammenity.price * quantity;
+        let totalAmount = 0;
+        let orders = [];
 
-        const newOrder = new AmmenitiesOrder({
-            ammenitiesId: ammenity._id,
-            age_group,
-            quantity,
-            amount,
-            staffId: staff._id,
-            date
-        });
+        for (const ammenity of ammenities) {
+            for (let i = 0; i < ammenity.ammenitiesName.length; i++) {
+                const foundAmmenity = await Ammenities.findOne({ name: ammenity.ammenitiesName[i], age_group: ammenity.age_group[i] });
+                if (!foundAmmenity) {
+                    return res.status(404).json({ message: `Ammenity ${ammenity.ammenitiesName[i]} not found for age group ${ammenity.age_group[i]}` });
+                }
 
-        await newOrder.save();
+                const amount = foundAmmenity.price * ammenity.quantity[i];
+                totalAmount += amount;
 
-        const newSale = new Sales({
-            ammenitiesId: newOrder._id,
-            amount
-        });
+                const newOrder = new AmmenitiesOrder({
+                    ammenitiesId: foundAmmenity._id,
+                    age_group: ammenity.age_group,
+                    quantity: ammenity.quantity,
+                    amount,
+                    staffId: staff._id,
+                    date
+                });
 
-        await newSale.save();
+                await newOrder.save();
+                orders.push(newOrder);
 
-        await updateFinancialEntries('Sales', amount, new Date(date), 'add');
+                const newSale = new Sales({
+                    ammenitiesId: newOrder._id,
+                    amount
+                });
 
-        res.status(201).json(newOrder);
+                await newSale.save();
+            }
+        }
+
+        await updateFinancialEntries('Sales', totalAmount, new Date(date), 'add');
+
+        res.status(201).json(orders);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
@@ -110,40 +119,45 @@ router.get('/ammenitiesOrders/:id', async (req, res) => {
 
 router.patch('/ammenitiesOrders/:id', async (req, res) => {
     try {
-        const { ammenitiesName, staffName, age_group, quantity, date } = req.body;
+        const { ammenities, staffName, date } = req.body;
         const order = await AmmenitiesOrder.findById(req.params.id);
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        if (ammenitiesName && age_group) {
-            const ammenity = await Ammenities.findOne({ name: ammenitiesName, age_group });
-            if (!ammenity) {
-                return res.status(404).json({ message: 'Ammenity not found' });
+        let totalAmount = 0;
+
+        if (ammenities) {
+            for (const ammenity of ammenities) {
+                for (let i = 0; i < ammenity.ammenitiesName.length; i++) {
+                    const foundAmmenity = await Ammenities.findOne({ name: ammenity.ammenitiesName[i], age_group: ammenity.age_group[i] });
+                    if (!foundAmmenity) {
+                        return res.status(404).json({ message: `Ammenity ${ammenity.ammenitiesName[i]} not found for age group ${ammenity.age_group[i]}` });
+                    }
+                    order.ammenitiesId = foundAmmenity._id;
+                    order.age_group = ammenity.age_group;
+                    order.quantity = ammenity.quantity;
+                    order.amount = foundAmmenity.price * ammenity.quantity[i];
+                    totalAmount += order.amount;
+                }
             }
-            order.ammenitiesId = ammenity._id;
-            order.amount = ammenity.price * quantity;
         }
 
         if (staffName) {
-            const staff = await Staff.findOne({ fname: staffName });
+            const staff = await Staff.findOne({ fname: staffName.split(' ')[0], lname: staffName.split(' ')[1] });
             if (!staff) {
                 return res.status(404).json({ message: 'Staff member not found' });
             }
             order.staffId = staff._id;
         }
 
-        if (quantity) {
-            const ammenity = await Ammenities.findById(order.ammenitiesId);
-            order.quantity = quantity;
-            order.amount = ammenity.price * quantity;
-        }
-
-        if (age_group) {
-            order.age_group = age_group;
+        if (date) {
+            order.date = new Date(date);
         }
 
         const updatedOrder = await order.save();
+        await updateFinancialEntries('Sales', totalAmount, new Date(date), 'add');
+
         res.json(updatedOrder);
     } catch (err) {
         res.status(400).json({ message: err.message });
