@@ -58,7 +58,7 @@ router.post('/reservation-bills', async (req, res) => {
         await newBill.save();
 
         const newSale = new Sales({
-            reservationsBillsId : newRoomService._id,
+            reservationsBillsId : newBill._id,
             amount: total_amount
         });
 
