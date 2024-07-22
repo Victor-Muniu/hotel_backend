@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const DailyCollections = require('../accounts/dailycollections');
+const BalanceSheet = require('../accounts/balancesheet');
 
 function calculateTotalRevenue({ float, total_sales, cash_paid_out }) {
     return float + total_sales - cash_paid_out;
@@ -32,6 +33,23 @@ router.post('/dailycollections', async (req, res) => {
         });
 
         await newDailyCollection.save();
+
+
+        const balanceSheetEntry = await BalanceSheet.findOne({ name: 'Cash At Hand', category: 'Current Assets', date: date });
+
+        if (balanceSheetEntry) {
+            balanceSheetEntry.amount = total_sales;
+            await balanceSheetEntry.save();
+        } else {
+            const newBalanceSheetEntry = new BalanceSheet({
+                name: 'Cash At Hand',
+                category: 'Current Assets',
+                amount: total_sales,
+                date: date
+            });
+            await newBalanceSheetEntry.save();
+        }
+
         res.status(201).json(newDailyCollection);
     } catch (err) {
         res.status(400).json({ message: err.message });
@@ -80,7 +98,6 @@ router.patch('/dailycollections/:id', async (req, res) => {
                 total_sales: dailyCollection.total_sales
             };
 
-            // Recalculate total_sales and total_revenue if any related fields are updated
             updatedData.total_sales = updatedData.mpesa + updatedData.cash + updatedData.pesa_pal + updatedData.equity + updatedData.cheque;
             updatedData.total_revenue = calculateTotalRevenue(updatedData);
 

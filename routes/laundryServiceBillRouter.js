@@ -17,7 +17,7 @@ async function updateFinancialEntries(groupName, amount, date, action = 'add') {
         group_name: groupName,
         Date: { $gte: new Date(year, 0, 1), $lt: new Date(year + 1, 0, 1) }
     });
-
+    
     if (!trialBalanceEntry) {
         trialBalanceEntry = new TrialBalance({
             group_name: groupName,

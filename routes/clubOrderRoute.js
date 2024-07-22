@@ -109,7 +109,7 @@ router.post('/clubOrders', async (req, res) => {
         await newBill.save();
 
         const newSale = new Sales({
-            restaurantOrderId: newBill._id,
+            clubOrderId: newBill._id,
             amount: totalAmount
         });
 
