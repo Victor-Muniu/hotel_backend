@@ -94,7 +94,7 @@ router.post('/curioPOS', async (req, res) => {
         // Deduct the quantities from Drinks
         for (let i = 0; i < drinksNames.length; i++) {
             const drink = await Drinks.findOne({ name: drinksNames[i] });
-            drink.availableQuantity -= quantity[i];
+            drink.quantity -= quantity[i];
             await drink.save();
         }
 
