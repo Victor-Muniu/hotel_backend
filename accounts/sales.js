@@ -31,6 +31,11 @@ const salesSchema = new mongoose.Schema({
         ref: 'LaundryServiceBill',
         required: false
     },
+    curioId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'CurioPOS',
+        required: false
+    },
     amount: {
         type: Number,
         required: true

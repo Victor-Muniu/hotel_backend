@@ -53,6 +53,7 @@ const backOfficeRequisitions = require('./routes/backofficeRequisitionRouter.js'
 const carrageInwardsRouter = require('./routes/carrageInwardRoute.js')
 const payment_voucherRouter = require('./routes/payment_voucherRoute.js')
 const balancesheetRouter = require('./routes/balanceSheetRoute.js')
+const curioPOSRouter = require('./routes/curioPOSRoute.js')
 const app = express();
 app.use(express.json());
  
@@ -115,6 +116,7 @@ app.use('', backOfficeRequisitions)
 app.use('', carrageInwardsRouter)
 app.use('', payment_voucherRouter)
 app.use('', balancesheetRouter)
+app.use('', curioPOSRouter)
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

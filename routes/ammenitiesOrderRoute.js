@@ -80,7 +80,7 @@ router.post('/ammenitiesOrders', async (req, res) => {
                 orders.push(newOrder);
 
                 const newSale = new Sales({
-                    ammenitiesId: newOrder._id,
+                    curioId: newOrder._id,
                     amount
                 });
 
