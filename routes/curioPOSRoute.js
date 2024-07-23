@@ -90,8 +90,15 @@ router.post('/curioPOS', async (req, res) => {
 
         await newSale.save();
         await updateFinancialEntries('Sales', totalAmount, new Date(date), 'add');
-        res.status(201).json(newCurioPOS);
 
+        // Deduct the quantities from Drinks
+        for (let i = 0; i < drinksNames.length; i++) {
+            const drink = await Drinks.findOne({ name: drinksNames[i] });
+            drink.availableQuantity -= quantity[i];
+            await drink.save();
+        }
+
+        res.status(201).json(newCurioPOS);
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
