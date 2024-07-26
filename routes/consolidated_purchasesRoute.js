@@ -7,7 +7,7 @@ const ProfitLoss = require('../accounts/profit&loss');
 const Item = require('../store/item');
 const Creditors = require('../accounts/creditors');
 const GeneralLeger = require('../accounts/general_lenger'); 
-
+const BalanceSheet = require('../accounts/balancesheet');
 const router = express.Router();
 
 const storage = multer.memoryStorage();
@@ -15,7 +15,7 @@ const upload = multer({ storage: storage });
 
 router.post('/consolidated-purchases', async (req, res) => {
     try {
-        const {date, amount, vendor } = req.body;
+        const { date, amount, vendor } = req.body;
         const newEntry = new Consolidated_purchases({ date, amount, vendor });
         await newEntry.save();
 
@@ -34,6 +34,8 @@ router.post('/consolidated-purchases', async (req, res) => {
             amount: amount
         });
         await generalLegerEntry.save();
+
+        await updateBalanceSheet('Short Term Loans', 'Short Term Liabilities', amount, new Date(date));
 
         res.status(201).json(newEntry);
     } catch (err) {
@@ -136,6 +138,8 @@ router.post('/upload-consolidated-purchases', upload.single('file'), async (req,
                 amount: transaction.amount
             });
             await generalLegerEntry.save();
+
+            await updateBalanceSheet('Short Term Loans', 'Short Term Liabilities', transaction.amount, transaction.date);
         }
 
         console.log("Transactions saved and financials updated successfully.");
@@ -225,6 +229,21 @@ async function updateFinancials(groupName, amount, date, transactionType) {
 
     await trialBalanceEntry.save();
     await profitLossEntry.save();
+}
+
+async function updateBalanceSheet(name, category, amount, date) {
+    let balanceSheetEntry = await BalanceSheet.findOne({ name, category });
+    if (balanceSheetEntry) {
+        balanceSheetEntry.amount += amount;
+    } else {
+        balanceSheetEntry = new BalanceSheet({
+            name,
+            category,
+            amount,
+            date
+        });
+    }
+    await balanceSheetEntry.save();
 }
 
 module.exports = router;

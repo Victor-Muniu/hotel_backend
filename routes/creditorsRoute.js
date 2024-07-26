@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Creditors = require('../accounts/creditors');
 const TrialBalance = require('../accounts/trial_balance');
+const BalanceSheet = require('../accounts/balancesheet');
 
 router.post('/creditors', async (req, res) => {
     try {
@@ -12,6 +13,7 @@ router.post('/creditors', async (req, res) => {
             date,
             amount
         });
+
 
         const currentYear = new Date().getFullYear(); 
 
@@ -25,7 +27,7 @@ router.post('/creditors', async (req, res) => {
 
         if (!trialBalanceEntry) {
             trialBalanceEntry = new TrialBalance({
-                group_name: 'Credit',
+                group_name: 'Creditors',
                 Debit: 0,
                 Credit: amount,
                 Date: new Date()
@@ -35,6 +37,31 @@ router.post('/creditors', async (req, res) => {
         }
 
         await trialBalanceEntry.save();
+
+
+        let balanceSheetEntry = await BalanceSheet.findOne({
+            name: 'Short Term Loans',
+            category: 'Short Term Liabilities',
+            date: {
+                $gte: new Date(currentYear, 0, 1),
+                $lt: new Date(currentYear + 1, 0, 1)
+            }
+        });
+
+        if (!balanceSheetEntry) {
+            balanceSheetEntry = new BalanceSheet({
+                name: 'Short Term Loans',
+                category: 'Short Term Liabilities',
+                amount: amount,
+                date: new Date()
+            });
+        } else {
+            balanceSheetEntry.amount += amount;
+        }
+
+        await balanceSheetEntry.save();
+
+        // Save new Creditor entry
         await newCreditor.save();
 
         res.status(201).json(newCreditor);
