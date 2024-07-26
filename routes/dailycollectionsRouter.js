@@ -34,21 +34,18 @@ router.post('/dailycollections', async (req, res) => {
 
         await newDailyCollection.save();
 
+       
+        await BalanceSheet.deleteOne({ name: 'Cash At Hand', category: 'Current Assets', date: date });
 
-        const balanceSheetEntry = await BalanceSheet.findOne({ name: 'Cash At Hand', category: 'Current Assets', date: date });
+        
+        const newBalanceSheetEntry = new BalanceSheet({
+            name: 'Cash At Hand',
+            category: 'Current Assets',
+            amount: total_sales,
+            date: date
+        });
 
-        if (balanceSheetEntry) {
-            balanceSheetEntry.amount = total_sales;
-            await balanceSheetEntry.save();
-        } else {
-            const newBalanceSheetEntry = new BalanceSheet({
-                name: 'Cash At Hand',
-                category: 'Current Assets',
-                amount: total_sales,
-                date: date
-            });
-            await newBalanceSheetEntry.save();
-        }
+        await newBalanceSheetEntry.save();
 
         res.status(201).json(newDailyCollection);
     } catch (err) {
