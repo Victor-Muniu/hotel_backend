@@ -41,7 +41,7 @@ router.post('/dailycollections', async (req, res) => {
         const newBalanceSheetEntry = new BalanceSheet({
             name: 'Cash At Hand',
             category: 'Current Assets',
-            amount: total_sales,
+            amount: cash,
             date: date
         });
 

@@ -29,7 +29,7 @@ async function updateBalanceSheet(asset) {
 
     if (!balanceSheetEntry) {
         balanceSheetEntry = new BalanceSheet({
-            name: recordName,
+            name: 'Fixed Assets',
             category,
             amount,
             date: new Date()
