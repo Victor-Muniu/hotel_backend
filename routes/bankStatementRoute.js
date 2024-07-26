@@ -1,8 +1,8 @@
 const express = require('express');
 const multer = require('multer');
-const pdf = require('pdf-parse');
 const xlsx = require('xlsx');
-const Transaction = require('../accounts/transaction'); // Adjust path as needed
+const Transaction = require('../accounts/transaction'); 
+const BalanceSheet = require('../accounts/balancesheet')
 
 const router = express.Router();
 
@@ -89,14 +89,10 @@ router.post('/upload-excel', upload.single('file'), async (req, res) => {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = xlsx.utils.sheet_to_json(worksheet);
 
-        if (jsonData.length > 0) {
-            console.log('Keys from Excel data:', Object.keys(jsonData[0]));
-        }
-
         const transactions = jsonData.map(row => ({
-            date: row['Date'], 
-            value: row['Value'], 
-            particulars: row['Particulars'], 
+            date: row['Date'],
+            value: row['Value'],
+            particulars: row['Particulars'],
             transaction_cost: row['Transaction Cost'],
             moneyOut: row['Money Out'] ? parseFloat(row['Money Out']) : null,
             moneyIn: row['Money In'] ? parseFloat(row['Money In']) : null,
@@ -104,11 +100,25 @@ router.post('/upload-excel', upload.single('file'), async (req, res) => {
         }));
 
         await Transaction.insertMany(transactions);
-        console.log("Transactions saved successfully.");
-        res.status(201).send(transactions);
+
+        const totalBalance = transactions.reduce((sum, transaction) => {
+            return sum + (transaction.balance || 0);
+        }, 0);
+
+        const balanceSheetEntry = new BalanceSheet({
+            name: 'Cash in Bank',
+            category: 'Current Assets',
+            amount: totalBalance,
+            date: new Date()
+        });
+
+        await balanceSheetEntry.save();
+
+        res.status(201).send({ transactions, balanceSheetEntry });
     } catch (error) {
         res.status(400).send(error.message);
     }
 });
+
 
 module.exports = router;
