@@ -36,23 +36,13 @@ router.post('/staff', async (req, res) => {
     }
 });
 
-// PATCH update one staff by id
+
 router.patch('/staff/:id', getStaff, async (req, res) => {
-    if (req.body.fname != null) {
-        res.staff.fname = req.body.fname;
-    }
-    if (req.body.lname != null){
-        res.staff.lname = req.body.lname
-    }
-    if (req.body.role != null) {
-        res.staff.role = req.body.role;
-    }
+    
     if (req.body.email != null) {
         res.staff.email = req.body.email;
     }
-    if(req.body.password !=null){
-        res.staff.email =req.body.password
-    }
+   
 
     try {
         const updatedStaff = await res.staff.save();
@@ -62,7 +52,6 @@ router.patch('/staff/:id', getStaff, async (req, res) => {
     }
 });
 
-// DELETE one staff by id
 router.delete('/staff/:id', getStaff, async (req, res) => {
     try {
         await res.staff.deleteOne();
