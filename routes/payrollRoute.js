@@ -2,14 +2,13 @@ const express = require('express');
 const router = express.Router();
 const Payroll = require('../accounts/payroll.js');
 const Staff = require('../models/staff.js');
-const jwt = require('jsonwebtoken');
-const Expense = require('../accounts/expense.js')
+const Expense = require('../accounts/expense.js');
 
 router.post('/payrolls', async (req, res) => {
     try {
-        const { date, gross_income, nhif_deductions, nssf_deductions, paye, emp_no } = req.body;
+        const { date, gross_income, nhif_deductions, nssf_deductions, paye, helb, housing_Levy, emp_no } = req.body;
 
-        const net_income = gross_income - nhif_deductions - nssf_deductions - paye;
+        const net_income = gross_income - nhif_deductions - nssf_deductions - paye - helb - housing_Levy;
 
         const staff = await Staff.findOne({ emp_no });
         if (!staff) {
@@ -23,6 +22,8 @@ router.post('/payrolls', async (req, res) => {
             nhif_deductions,
             nssf_deductions,
             paye,
+            helb,
+            housing_Levy,
             staff_Id: staff._id
         });
 
@@ -42,13 +43,12 @@ router.post('/payrolls', async (req, res) => {
     }
 });
 
-
 router.get('/payrolls', async (req, res) => {
     try {
         const payrolls = await Payroll.find();
         const payrollsWithNames = await Promise.all(payrolls.map(async (payroll) => {
             const staff = await Staff.findById(payroll.staff_Id);
-            if (!staff) return payroll; 
+            if (!staff) return payroll;
 
             return {
                 ...payroll.toObject(),
@@ -90,9 +90,9 @@ router.get('/payrolls/:id', async (req, res) => {
 
 router.patch('/payrolls/:id', async (req, res) => {
     try {
-        const { date, gross_income, nhif_deductions, nssf_deductions, paye, emp_no } = req.body;
+        const { date, gross_income, nhif_deductions, nssf_deductions, paye, helb, housing_Levy, emp_no } = req.body;
 
-        const net_income = gross_income - nhif_deductions - nssf_deductions - paye;
+        const net_income = gross_income - nhif_deductions - nssf_deductions - paye - helb - housing_Levy;
 
         const staff = await Staff.findOne({ emp_no });
         if (!staff) {
@@ -106,6 +106,8 @@ router.patch('/payrolls/:id', async (req, res) => {
             nhif_deductions,
             nssf_deductions,
             paye,
+            helb,
+            housing_Levy,
             staff_Id: staff._id
         }, { new: true });
 
@@ -134,10 +136,7 @@ router.patch('/payrolls/:id', async (req, res) => {
     }
 });
 
-
-
-
-router.delete('/payrolls/:id',  async (req, res) => {
+router.delete('/payrolls/:id', async (req, res) => {
     try {
         const payroll = await Payroll.findByIdAndRemove(req.params.id);
         if (!payroll) {

@@ -13,6 +13,10 @@ const creditorsSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    status: {
+        type: String,
+        default: 'Not Paid'
+    }
 });
 
 const Creditors = mongoose.model('Creditors', creditorsSchema);

@@ -14,6 +14,7 @@ const paymentVoucherSchema = new mongoose.Schema({
         ref: 'Staff', 
         required: true
     },
+    
     authorizationDate: {
         type: Date,
         default: Date.now,

@@ -25,6 +25,14 @@ const payrollSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    helb: {
+        type: Number,
+        required: true 
+    },
+    housing_Levy: {
+        type: Number,
+        required: true
+    },
     staff_Id: {
         type: String,
         required: true,

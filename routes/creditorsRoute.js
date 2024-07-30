@@ -14,7 +14,6 @@ router.post('/creditors', async (req, res) => {
             amount
         });
 
-
         const currentYear = new Date().getFullYear(); 
 
         let trialBalanceEntry = await TrialBalance.findOne({
@@ -38,7 +37,6 @@ router.post('/creditors', async (req, res) => {
 
         await trialBalanceEntry.save();
 
-
         let balanceSheetEntry = await BalanceSheet.findOne({
             name: 'Short Term Loans',
             category: 'Short Term Liabilities',
@@ -61,7 +59,6 @@ router.post('/creditors', async (req, res) => {
 
         await balanceSheetEntry.save();
 
-        // Save new Creditor entry
         await newCreditor.save();
 
         res.status(201).json(newCreditor);
