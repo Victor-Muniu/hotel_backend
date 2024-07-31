@@ -7,8 +7,14 @@ const Expense = require('../accounts/expense.js');
 router.post('/payrolls', async (req, res) => {
     try {
         const { date, gross_income, nhif_deductions, nssf_deductions, paye, helb, housing_Levy, emp_no } = req.body;
+        const grossIncome = Number(gross_income);
+        const nhifDeductions = Number(nhif_deductions);
+        const nssfDeductions = Number(nssf_deductions);
+        const payeDeductions = Number(paye);
+        const helbDeductions = Number(helb);
+        const housingLevy = Number(housing_Levy);
 
-        const net_income = gross_income - nhif_deductions - nssf_deductions - paye - helb - housing_Levy;
+        const net_income = grossIncome - nhifDeductions - nssfDeductions - payeDeductions - helbDeductions - housingLevy;
 
         const staff = await Staff.findOne({ emp_no });
         if (!staff) {
@@ -17,13 +23,13 @@ router.post('/payrolls', async (req, res) => {
 
         const newPayroll = new Payroll({
             date,
-            gross_income,
+            gross_income: grossIncome,
             net_income,
-            nhif_deductions,
-            nssf_deductions,
-            paye,
-            helb,
-            housing_Levy,
+            nhif_deductions: nhifDeductions,
+            nssf_deductions: nssfDeductions,
+            paye: payeDeductions,
+            helb: helbDeductions,
+            housing_Levy: housingLevy,
             staff_Id: staff._id
         });
 
@@ -32,7 +38,6 @@ router.post('/payrolls', async (req, res) => {
         const month = new Date(date).getMonth();
         const year = new Date(date).getFullYear();
 
-     
         let expense = await Expense.findOne({
             category: 'Salary and Wages',
             date: {
@@ -43,14 +48,13 @@ router.post('/payrolls', async (req, res) => {
 
         if (expense) {
             
-            expense.amount += gross_income;
+            expense.amount = Number(expense.amount) + grossIncome;
             await expense.save();
         } else {
-            
             const newExpense = new Expense({
                 category: 'Salary and Wages',
                 sub_category: 'Salary and Wages',
-                amount: gross_income,
+                amount: grossIncome,
                 date: date 
             });
 
@@ -114,7 +118,14 @@ router.patch('/payrolls/:id', async (req, res) => {
     try {
         const { date, gross_income, nhif_deductions, nssf_deductions, paye, helb, housing_Levy, emp_no } = req.body;
 
-        const net_income = gross_income - nhif_deductions - nssf_deductions - paye - helb - housing_Levy;
+        const grossIncome = Number(gross_income);
+        const nhifDeductions = Number(nhif_deductions);
+        const nssfDeductions = Number(nssf_deductions);
+        const payeDeductions = Number(paye);
+        const helbDeductions = Number(helb);
+        const housingLevy = Number(housing_Levy);
+
+        const net_income = grossIncome - nhifDeductions - nssfDeductions - payeDeductions - helbDeductions - housingLevy;
 
         const staff = await Staff.findOne({ emp_no });
         if (!staff) {
@@ -123,13 +134,13 @@ router.patch('/payrolls/:id', async (req, res) => {
 
         const updatedPayroll = await Payroll.findByIdAndUpdate(req.params.id, {
             date,
-            gross_income,
+            gross_income: grossIncome,
             net_income,
-            nhif_deductions,
-            nssf_deductions,
-            paye,
-            helb,
-            housing_Levy,
+            nhif_deductions: nhifDeductions,
+            nssf_deductions: nssfDeductions,
+            paye: payeDeductions,
+            helb: helbDeductions,
+            housing_Levy: housingLevy,
             staff_Id: staff._id
         }, { new: true });
 
@@ -149,8 +160,7 @@ router.patch('/payrolls/:id', async (req, res) => {
         });
 
         if (expense) {
-         
-            expense.amount += net_income;
+            expense.amount = Number(expense.amount) + net_income;
             await expense.save();
         } else {
             expense = new Expense({
@@ -168,6 +178,7 @@ router.patch('/payrolls/:id', async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
+
 
 
 router.delete('/payrolls/:id', async (req, res) => {
