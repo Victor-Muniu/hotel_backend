@@ -29,19 +29,41 @@ router.post('/payrolls', async (req, res) => {
 
         await newPayroll.save();
 
-        const newExpense = new Expense({
+        const month = new Date(date).getMonth();
+        const year = new Date(date).getFullYear();
+
+     
+        let expense = await Expense.findOne({
             category: 'Salary and Wages',
-            amount: net_income,
-            date: date 
+            date: {
+                $gte: new Date(year, month, 1),
+                $lt: new Date(year, month + 1, 1)
+            }
         });
 
-        await newExpense.save();
+        if (expense) {
+            
+            expense.amount += gross_income;
+            await expense.save();
+        } else {
+            
+            const newExpense = new Expense({
+                category: 'Salary and Wages',
+                sub_category: 'Salary and Wages',
+                amount: gross_income,
+                date: date 
+            });
 
-        res.status(201).json({ payroll: newPayroll, expense: newExpense });
+            await newExpense.save();
+            expense = newExpense;
+        }
+
+        res.status(201).json({ payroll: newPayroll, expense });
     } catch (err) {
         res.status(400).json({ message: err.message });
     }
 });
+
 
 router.get('/payrolls', async (req, res) => {
     try {
@@ -115,18 +137,29 @@ router.patch('/payrolls/:id', async (req, res) => {
             return res.status(404).json({ message: 'Payroll not found' });
         }
 
-        let expense = await Expense.findOne({ category: 'Salary and Wages', date });
+        const month = new Date(date).getMonth();
+        const year = new Date(date).getFullYear();
+        
+        let expense = await Expense.findOne({
+            category: 'Salary and Wages',
+            date: {
+                $gte: new Date(year, month, 1),
+                $lt: new Date(year, month + 1, 1)
+            }
+        });
 
-        if (!expense) {
+        if (expense) {
+         
+            expense.amount += net_income;
+            await expense.save();
+        } else {
             expense = new Expense({
                 category: 'Salary and Wages',
+                sub_category: 'Salary and Wages',
                 amount: net_income,
                 date
             });
 
-            await expense.save();
-        } else {
-            expense.amount = net_income;
             await expense.save();
         }
 
@@ -135,6 +168,7 @@ router.patch('/payrolls/:id', async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
+
 
 router.delete('/payrolls/:id', async (req, res) => {
     try {
