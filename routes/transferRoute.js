@@ -53,10 +53,13 @@ router.patch('/transfers/:id', async (req, res) => {
         if (!transfer) {
             return res.status(404).json({ message: 'Transfer not found' });
         }
-
         Object.keys(req.body).forEach(key => {
             transfer[key] = req.body[key];
         });
+
+        if (transfer.unit_price && transfer.quantity) {
+            transfer.value = transfer.unit_price * transfer.quantity;
+        }
 
         const updatedTransfer = await transfer.save();
         res.json(updatedTransfer);
