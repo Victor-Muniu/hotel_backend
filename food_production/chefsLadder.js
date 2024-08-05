@@ -1,41 +1,49 @@
 const mongoose = require('mongoose')
-
-const chefLadderSchema = new mongoose.Schema({
+const chefsLadderSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true,
-        unique: true
+        required: true
     },
-    description: {
+    unit: {
         type: String,
-        required: false
+        required: true
     },
-    group:{
-        type: String,
-        required: false
-    },
-    unit_price: {
+    opening_stock: {
         type: Number,
         required: true
     },
-    quantity: {
+    closing_stock: {
         type: Number,
-        required: true,
-        default: 0
+        required: true
     },
-    spoilt: {
-        type: Number,
-        default: 0
+    total: {
+        type:Number,
+        required: true
     },
-    value:{
+    issued: {
         type: Number,
-        default: 0
+        required: true
+    },
+    RT: {
+        type: String,
+        required: true
+    },
+    sold: {
+        type: Number,
+        required: true
+    },
+    remarks: {
+        type: String,
+        required: true
     },
     date: {
         type: Date,
         required: true
+    },
+    shift: {
+        type: String,
+        required: true
     }
 })
-
-const CheffsLadder = mongoose.model('CheffsLadder', chefLadderSchema)
+const CheffsLadder = mongoose.model('CheffsLadder', chefsLadderSchema)
 module.exports = CheffsLadder

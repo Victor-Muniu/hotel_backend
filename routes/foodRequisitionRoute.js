@@ -56,37 +56,40 @@ router.patch('/foodProductionRequisitions/:id', async (req, res) => {
                 return res.status(400).json({ message: 'Insufficient quantity in stock' });
             }
 
-            // Check if CheffsLadder entry exists
-            let cheffsLadder = await CheffsLadder.findOne({ name: item.name });
+            const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+
+            let cheffsLadder = await CheffsLadder.findOne({ name: item.name, date: today });
 
             if (cheffsLadder) {
-                // Update existing CheffsLadder entry
-                cheffsLadder.quantity += quantity;
-                cheffsLadder.value += item.unit_price * quantity;
+                // Update existing entry
+                cheffsLadder.issued += quantity;
+                cheffsLadder.total = cheffsLadder.opening_stock + cheffsLadder.issued;
+                cheffsLadder.closing_stock = cheffsLadder.total - cheffsLadder.RT - cheffsLadder.sold;
             } else {
-                // Create new CheffsLadder entry
+                // Create new entry
                 cheffsLadder = new CheffsLadder({
                     name: item.name,
-                    description: item.description,
-                    group: item.group,
-                    unit_price: item.unit_price,
-                    quantity: quantity,
-                    spoilt: item.spoilt,
-                    value: item.unit_price * quantity,
-                    date: new Date()
+                    unit: item.unit,
+                    opening_stock: item.quantity,
+                    issued: quantity,
+                    total: item.quantity + quantity,
+                    RT: 0, 
+                    sold: 0, 
+                    closing_stock: item.quantity + quantity, 
+                    remarks: '', 
+                    date: today,
+                    shift: 'Day', 
                 });
             }
 
             await cheffsLadder.save();
 
-            // Update item quantity
+         
             item.quantity -= quantity;
             await item.save();
         }
 
-        if (itemName) {
-            requisition.itemID = item._id;
-        }
+        if (itemName) requisition.itemID = item._id;
         if (quantity) requisition.quantity = quantity;
         if (unit) requisition.unit = unit;
         if (description) requisition.description = description;
@@ -100,6 +103,7 @@ router.patch('/foodProductionRequisitions/:id', async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
+
 
 router.get('/foodProductionRequisitions', async (req, res) => {
     try {

@@ -11,11 +11,7 @@ function calculateStocks(doc) {
 
 router.post('/cheffsLadder', async (req, res) => {
     try {
-
         const {name, unit, date, opening_stock, issued, RT, sold, shift, remarks } = req.body;
-
-        
-
         const { total, closing_stock } = calculateStocks(req.body);
 
         const newLadder = new CheffsLadder({
