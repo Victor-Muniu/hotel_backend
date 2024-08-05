@@ -3,19 +3,41 @@ const router = express.Router();
 const CheffsLadder = require('../food_production/chefsLadder');
 
 function calculateStocks(doc) {
-    const total = doc.opening_stock + doc.issued;
-    const closing_stock = total - doc.RT - doc.sold;
+    const opening_stock = Number(doc.opening_stock);
+    const issued = Number(doc.issued);
+    const RT = Number(doc.RT);
+    const sold = Number(doc.sold);
+
+    const total = opening_stock + issued;
+    const closing_stock = total - RT - sold;
+
     return { total, closing_stock };
 }
 
-
 router.post('/cheffsLadder', async (req, res) => {
     try {
-        const {name, unit, date, opening_stock, issued, RT, sold, shift, remarks } = req.body;
-        const { total, closing_stock } = calculateStocks(req.body);
+        const { name, unit, date, opening_stock, issued, RT, sold, shift, remarks } = req.body;
+
+     
+        const numericData = {
+            opening_stock: Number(opening_stock),
+            issued: Number(issued),
+            RT: Number(RT),
+            sold: Number(sold)
+        };
+
+        const { total, closing_stock } = calculateStocks(numericData);
 
         const newLadder = new CheffsLadder({
-            ...req.body,
+            name,
+            unit,
+            date,
+            opening_stock: numericData.opening_stock,
+            issued: numericData.issued,
+            RT: numericData.RT,
+            sold: numericData.sold,
+            shift,
+            remarks,
             total,
             closing_stock
         });
@@ -51,7 +73,14 @@ router.patch('/cheffsLadder/:id', async (req, res) => {
         const ladder = await CheffsLadder.findById(req.params.id);
         if (!ladder) return res.status(404).json({ message: 'CheffsLadder not found' });
 
-        Object.assign(ladder, req.body);
+        Object.assign(ladder, {
+            ...req.body,
+            opening_stock: Number(req.body.opening_stock),
+            issued: Number(req.body.issued),
+            RT: Number(req.body.RT),
+            sold: Number(req.body.sold)
+        });
+
         const { total, closing_stock } = calculateStocks(ladder);
         ladder.total = total;
         ladder.closing_stock = closing_stock;
