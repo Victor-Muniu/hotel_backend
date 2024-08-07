@@ -61,7 +61,8 @@ router.get('/banquettinginvoices', async (req, res) => {
                     name: banquetting.name,
                     workshopName: banquetting.workshopName,
                     reservedDates: banquetting.reservedDates,
-                    checkout: banquetting.checkout
+                    checkout: banquetting.checkout,
+                    package: banquetting.package_type
                 } : {}
             };
         }));
