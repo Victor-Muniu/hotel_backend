@@ -56,6 +56,7 @@ const balancesheetRouter = require('./routes/balanceSheetRoute.js')
 const curioPOSRouter = require('./routes/curioPOSRoute.js')
 const varianceRouter = require('./routes/varianceRoute.js')
 const receipeRouter = require('./routes/receipeRoute.js')
+const websiteRouter = require('./routes/websiteRoute.js')
 const app = express();
 app.use(express.json());
  
@@ -121,6 +122,7 @@ app.use('', balancesheetRouter)
 app.use('', curioPOSRouter)
 app.use('', varianceRouter)
 app.use('', receipeRouter)
+app.use('', websiteRouter)
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
