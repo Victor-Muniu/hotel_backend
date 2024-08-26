@@ -57,6 +57,7 @@ const curioPOSRouter = require('./routes/curioPOSRoute.js')
 const varianceRouter = require('./routes/varianceRoute.js')
 const receipeRouter = require('./routes/receipeRoute.js')
 const websiteRouter = require('./routes/websiteRoute.js')
+const blogRouter = require('./routes/blogRoute.js')
 const app = express();
 app.use(express.json());
  
@@ -123,7 +124,7 @@ app.use('', curioPOSRouter)
 app.use('', varianceRouter)
 app.use('', receipeRouter)
 app.use('', websiteRouter)
-
+app.use('', blogRouter)
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
