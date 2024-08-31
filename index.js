@@ -58,6 +58,7 @@ const varianceRouter = require('./routes/varianceRoute.js')
 const receipeRouter = require('./routes/receipeRoute.js')
 const websiteRouter = require('./routes/websiteRoute.js')
 const blogRouter = require('./routes/blogRoute.js')
+const commentRouter = require('./routes/commentRoute.js')
 const app = express();
 app.use(express.json());
  
@@ -125,6 +126,7 @@ app.use('', varianceRouter)
 app.use('', receipeRouter)
 app.use('', websiteRouter)
 app.use('', blogRouter)
+app.use('', commentRouter)
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

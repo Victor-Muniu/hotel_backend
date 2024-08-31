@@ -40,7 +40,7 @@ router.patch('/restaurantBills/:id', async (req, res) => {
         if (!updatedBill) {
             return res.status(404).json({ message: 'Restaurant bill not found' });
         }
-        if (updatedBill.status === 'Cleared') {
+        if (updatedBill.status === 'Cleared' || updatedBill.status === 'cleared') {
         
             const table = await Table.findById(updatedBill.restaurantOrderId.tableId);
 
