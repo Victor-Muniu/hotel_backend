@@ -56,12 +56,12 @@ router.patch('/foodProductionRequisitions/:id', async (req, res) => {
                 return res.status(400).json({ message: 'Insufficient quantity in stock' });
             }
 
-            const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+            const today = new Date().toISOString().split('T')[0]; 
 
             let cheffsLadder = await CheffsLadder.findOne({ name: item.name, date: today });
 
             if (cheffsLadder) {
-                // Update existing entry
+                
                 cheffsLadder.issued += quantity;
                 cheffsLadder.total = cheffsLadder.opening_stock + cheffsLadder.issued;
                 cheffsLadder.closing_stock = cheffsLadder.total - cheffsLadder.RT - cheffsLadder.sold;
@@ -69,14 +69,14 @@ router.patch('/foodProductionRequisitions/:id', async (req, res) => {
                 // Create new entry
                 cheffsLadder = new CheffsLadder({
                     name: item.name,
-                    unit: item.unit,
+                    unit: item.unit || 'default unit',
                     opening_stock: item.quantity,
                     issued: quantity,
                     total: item.quantity + quantity,
                     RT: 0, 
                     sold: 0, 
                     closing_stock: item.quantity + quantity, 
-                    remarks: '', 
+                    remarks: 'No Remarks', 
                     date: today,
                     shift: 'Day', 
                 });
