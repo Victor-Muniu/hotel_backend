@@ -7,39 +7,51 @@ const Supplier = require('../supplier/supplier.js');
 
 
 function verifyToken(req, res, next) {
-    const token = req.headers['authorization'];
+    const token = req.cookies.token;
     if (!token) {
         return res.status(401).json({ message: 'Unauthorized: Missing token' });
     }
-
     try {
         const decoded = jwt.verify(token, 'your_secret_key');
-        req.userId = decoded.user.emp_no;
-        console.log('User ID:', req.userId); 
+        if (!decoded || !decoded.user || !decoded.user.emp_no) {
+            console.log('Token does not contain user information');
+            return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        }
+        req.userEmpNo = decoded.user.emp_no; 
+        
         next();
     } catch (err) {
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        console.log('Token verification error:', err.message);
         return res.status(403).json({ message: 'Unauthorized: Invalid token' });
     }
 }
 
 
-// Middleware to check if user is admin
 async function isAdmin(req, res, next) {
     try {
-        const user = await Staff.findOne({ emp_no: req.userId });
-        console.log('User:', user); 
-        if (!user || (user.role !== 'admin' && user.role !== 'storekeeper' && user.role !== 'accountant')) {
-            console.log('User has no authority'); 
-            return res.status(403).json({ message: 'Unauthorized: Only admin or storekeeper users can perform this action' });
+        console.log('User emp_no from token:', req.userEmpNo); 
+        
+        const user = await Staff.findOne({ emp_no: req.userEmpNo }); 
+        console.log('User fetched from database:', user); 
+        
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'accounts' && user.role !== 'CEO' && user.role !== 'procurement')) {
+            console.log('User is not admin');
+            return res.status(403).json({ message: 'Unauthorized: Only admin users can perform this action' });
         }
-        next();
+        
+        console.log('User is Admin');
+        next(); 
     } catch (err) {
+        console.error('Error in isAdmin middleware:', err.message);
         res.status(500).json({ message: err.message });
     }
 }
 
-
-router.post('/suppliers', async (req, res) => {
+router.post('/suppliers', verifyToken, isAdmin, async (req, res) => {
     try {
         const newSupplier = new Supplier(req.body);
         await newSupplier.save();
@@ -50,7 +62,7 @@ router.post('/suppliers', async (req, res) => {
 });
 
 
-router.get('/suppliers', async (req, res) => {
+router.get('/suppliers', verifyToken, isAdmin, async (req, res) => {
     try {
         const suppliers = await Supplier.find();
         res.json(suppliers);
@@ -59,7 +71,7 @@ router.get('/suppliers', async (req, res) => {
     }
 });
 
-router.get('/suppliers/:id', async (req, res) => {
+router.get('/suppliers/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const supplier = await Supplier.findById(req.params.id);
         if (!supplier) {
@@ -71,7 +83,7 @@ router.get('/suppliers/:id', async (req, res) => {
     }
 });
 
-router.patch('/suppliers/:id', async (req, res) => {
+router.patch('/suppliers/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const updatedSupplier = await Supplier.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedSupplier) {
@@ -83,7 +95,7 @@ router.patch('/suppliers/:id', async (req, res) => {
     }
 });
 
-router.delete('/suppliers/:id',  async (req, res) => {
+router.delete('/suppliers/:id', verifyToken, isAdmin,  async (req, res) => {
     try {
         const supplier = await Supplier.findByIdAndRemove(req.params.id);
         if (!supplier) {

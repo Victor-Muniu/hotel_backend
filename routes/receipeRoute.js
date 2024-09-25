@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Receipe = require('../food_production/receip');
 
+
+
 router.post('/receipes', async (req, res) => {
     try {
         const { name, raw_materials, quantity, unit_price } = req.body;

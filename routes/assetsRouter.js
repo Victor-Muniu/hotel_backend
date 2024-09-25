@@ -3,7 +3,53 @@ const router = express.Router();
 const Assets = require('../accounts/assets');
 const GeneralLedger = require('../accounts/general_lenger');
 const BalanceSheet = require('../accounts/balancesheet'); 
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
 
+function verifyToken(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ message: 'Unauthorized: Missing token' });
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        if (!decoded || !decoded.user || !decoded.user.emp_no) {
+            console.log('Token does not contain user information');
+            return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        }
+        req.userEmpNo = decoded.user.emp_no; 
+        
+        next();
+    } catch (err) {
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        console.log('Token verification error:', err.message);
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+    }
+}
+
+
+async function isAdmin(req, res, next) {
+    try {
+        console.log('User emp_no from token:', req.userEmpNo); 
+        
+        const user = await Staff.findOne({ emp_no: req.userEmpNo }); 
+        console.log('User fetched from database:', user); 
+        
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'accounts' && user.role !== 'CEO')) {
+            console.log('User is not admin');
+            return res.status(403).json({ message: 'Unauthorized: Only admin users can perform this action' });
+        }
+        
+        console.log('User is Admin');
+        next(); 
+    } catch (err) {
+        console.error('Error in isAdmin middleware:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+}
 async function updatedFinancials(asset) {
     const { amount, category } = asset;
     let ledgerEntry = await GeneralLedger.findOne({ category });
@@ -41,7 +87,7 @@ async function updateBalanceSheet(asset) {
     await balanceSheetEntry.save();
 }
 
-router.post('/assets', async (req, res) => {
+router.post('/assets', verifyToken, isAdmin, async (req, res) => {
     try {
         const { name, group, category, issued, stored, spoilt, price } = req.body;
         const quantity = issued + stored + spoilt;
@@ -70,8 +116,8 @@ router.post('/assets', async (req, res) => {
     }
 });
 
-// Get all assets
-router.get('/assets', async (req, res) => {
+
+router.get('/assets', verifyToken, isAdmin, async (req, res) => {
     try {
         const assets = await Assets.find();
         res.json(assets);
@@ -80,8 +126,7 @@ router.get('/assets', async (req, res) => {
     }
 });
 
-// Get a specific asset
-router.get('/assets/:id', async (req, res) => {
+router.get('/assets/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const asset = await Assets.findById(req.params.id);
         if (!asset) {
@@ -94,7 +139,7 @@ router.get('/assets/:id', async (req, res) => {
 });
 
 
-router.patch('/assets/:id', async (req, res) => {
+router.patch('/assets/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const updatedData = req.body;
 
@@ -133,7 +178,7 @@ router.patch('/assets/:id', async (req, res) => {
 
 
 
-router.delete('/assets/:id', async (req, res) => {
+router.delete('/assets/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const deletedAsset = await Assets.findByIdAndDelete(req.params.id);
         if (!deletedAsset) {

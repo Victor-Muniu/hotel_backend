@@ -1,9 +1,45 @@
 const express = require('express');
 const router = express.Router();
 const Blog = require('../models/blog')
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
 
+function verifyToken(req, res, next){
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({message: 'Unauthorized: Missing token'});
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        req.userId = decoded.user.emp_no;
+        console.log('User ID:' , req.userId);
+        next();
+    }catch (err){
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        
+    }
+}
 
-router.post('/blogs', async (req, res) => {
+async function isAdmin(req, res, next){
+    try{
+        const user = await Staff.findOne({emp_no: req.userId});
+        console.log('User', user);
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin')){
+            console.log('User is not admin');
+            return res.status(403).json({message: "Unauthorized: Only admin users can perform this action"});
+            
+        }
+        console.log('User is Admin')
+    } catch (err){
+        res.status(500).json({message: err.message});
+    }
+}
+
+router.post('/blogs', verifyToken, isAdmin, async (req, res) => {
     try {
         const blog = new Blog(req.body);
         await blog.save();
@@ -14,7 +50,7 @@ router.post('/blogs', async (req, res) => {
 });
 
 
-router.get('/blogs', async (req, res) => {
+router.get('/blogs',  async (req, res) => {
     try {
         const blogs = await Blog.find({});
         res.status(200).send(blogs);
@@ -24,7 +60,7 @@ router.get('/blogs', async (req, res) => {
 });
 
 
-router.get('/blogs/:id', async (req, res) => {
+router.get('/blogs/:id',  async (req, res) => {
     try {
         const blog = await Blog.findById(req.params.id);
         if (!blog) {
@@ -37,7 +73,7 @@ router.get('/blogs/:id', async (req, res) => {
 });
 
 
-router.patch('/blogs/:id', async (req, res) => {
+router.patch('/blogs/:id', verifyToken, isAdmin, async (req, res) => {
     const updates = Object.keys(req.body);
     const allowedUpdates = ['title', 'author', 'content', 'tags', 'pictures', 'videos', 'likes', 'comments'];
     const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
@@ -60,7 +96,7 @@ router.patch('/blogs/:id', async (req, res) => {
     }
 });
 
-router.delete('/blogs/:id', async (req, res) => {
+router.delete('/blogs/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const blog = await Blog.findByIdAndDelete(req.params.id);
         if (!blog) {

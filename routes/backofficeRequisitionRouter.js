@@ -3,8 +3,44 @@ const router = express.Router();
 const BackOfficeRequisition = require('../requisition/backOffice');
 const Item = require('../store/item');
 const Back2 = require('../reservations/back2');
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
 
-router.post('/backOfficeRequisitions', async (req, res) => {
+function verifyToken(req, res, next){
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({message: 'Unauthorized: Missing token'});
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        req.userId = decoded.user.emp_no;
+        console.log('User ID:' , req.userId);
+        next();
+    }catch (err){
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        
+    }
+}
+
+async function isAdmin(req, res, next){
+    try{
+        const user = await Staff.findOne({emp_no: req.userId});
+        console.log('User', user);
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'accounts')){
+            console.log('User is not admin');
+            return res.status(403).json({message: "Unauthorized: Only admin users can perform this action"});
+            
+        }
+        console.log('User is Admin')
+    } catch (err){
+        res.status(500).json({message: err.message});
+    }
+}
+router.post('/backOfficeRequisitions', verifyToken, isAdmin, async (req, res) => {
     try {
         const { itemName, quantity, unit, description, date, department, status } = req.body;
 
@@ -37,7 +73,7 @@ router.post('/backOfficeRequisitions', async (req, res) => {
     }
 });
 
-router.patch('/backOfficeRequisitions/:id', async (req, res) => {
+router.patch('/backOfficeRequisitions/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const { itemName, quantity, unit, description, department, status, date } = req.body;
 
@@ -95,7 +131,7 @@ router.patch('/backOfficeRequisitions/:id', async (req, res) => {
     }
 });
 
-router.get('/backOfficeRequisitions', async (req, res) => {
+router.get('/backOfficeRequisitions', verifyToken, isAdmin, async (req, res) => {
     try {
         const requisitions = await BackOfficeRequisition.find().populate('itemID');
         const populatedRequisitions = requisitions.map(req => ({
@@ -108,7 +144,7 @@ router.get('/backOfficeRequisitions', async (req, res) => {
     }
 });
 
-router.get('/backOfficeRequisitions/:id', async (req, res) => {
+router.get('/backOfficeRequisitions/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const requisition = await BackOfficeRequisition.findById(req.params.id).populate('itemID');
         if (!requisition) {
@@ -123,7 +159,7 @@ router.get('/backOfficeRequisitions/:id', async (req, res) => {
     }
 });
 
-router.delete('/backOfficeRequisitions/:id', async (req, res) => {
+router.delete('/backOfficeRequisitions/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const requisition = await BackOfficeRequisition.findById(req.params.id);
         if (!requisition) {

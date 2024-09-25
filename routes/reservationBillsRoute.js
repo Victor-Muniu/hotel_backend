@@ -5,6 +5,55 @@ const Reservation = require('../reservations/reservation');
 const TrialBalance = require('../accounts/trial_balance');
 const ProfitLoss = require('../accounts/profit&loss');
 const Sales = require('../accounts/sales')
+
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
+
+function verifyToken(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ message: 'Unauthorized: Missing token' });
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        if (!decoded || !decoded.user || !decoded.user.emp_no) {
+            console.log('Token does not contain user information');
+            return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        }
+        req.userEmpNo = decoded.user.emp_no; 
+        
+        next();
+    } catch (err) {
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        console.log('Token verification error:', err.message);
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+    }
+}
+
+
+async function isAdmin(req, res, next) {
+    try {
+        console.log('User emp_no from token:', req.userEmpNo); 
+        
+        const user = await Staff.findOne({ emp_no: req.userEmpNo }); 
+        console.log('User fetched from database:', user); 
+        
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'front office' && user.role !== 'house keeping' )) {
+            console.log('User is not admin');
+            return res.status(403).json({ message: 'Unauthorized: Only admin users can perform this action' });
+        }
+        
+        console.log('User is Admin');
+        next(); 
+    } catch (err) {
+        console.error('Error in isAdmin middleware:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+}
+
 async function updateFinancialEntries(groupName, amount, date, action = 'add') {
     const year = date.getFullYear();
 
@@ -44,7 +93,7 @@ async function updateFinancialEntries(groupName, amount, date, action = 'add') {
 }
 
 
-router.post('/reservation-bills', async (req, res) => {
+router.post('/reservation-bills', verifyToken, isAdmin,  async (req, res) => {
     const { reservationID, total_amount,  package_price } = req.body;
     try {
         const reservation = await Reservation.findById(reservationID);
@@ -72,7 +121,7 @@ router.post('/reservation-bills', async (req, res) => {
     }
 });
 
-router.get('/reservation-bills', async (req, res) => {
+router.get('/reservation-bills', verifyToken, isAdmin,  async (req, res) => {
     try {
         const bills = await ReservationBills.find().populate('reservationID');
         res.json(bills);
@@ -81,7 +130,7 @@ router.get('/reservation-bills', async (req, res) => {
     }
 });
 
-router.get('/reservation-bills/:id', async (req, res) => {
+router.get('/reservation-bills/:id', verifyToken, isAdmin,  async (req, res) => {
     const { id } = req.params;
     try {
         const bill = await ReservationBills.findById(id).populate('reservationID');
@@ -94,7 +143,7 @@ router.get('/reservation-bills/:id', async (req, res) => {
     }
 });
 
-router.get('/reservation-bills/room/:room_no', async (req, res) => {
+router.get('/reservation-bills/room/:room_no', verifyToken, isAdmin,  async (req, res) => {
     const { room_no } = req.params;
     try {
         const reservations = await Reservation.find({ room_no: room_no });
@@ -115,7 +164,7 @@ router.get('/reservation-bills/room/:room_no', async (req, res) => {
     }
 });
 
-router.delete('/reservation-bills/:id', async (req, res) => {
+router.delete('/reservation-bills/:id', verifyToken, isAdmin,  async (req, res) => {
     const { id } = req.params;
     try {
         const deletedBill = await ReservationBills.findByIdAndDelete(id);

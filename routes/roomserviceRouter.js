@@ -6,6 +6,45 @@ const TrialBalance = require('../accounts/trial_balance');
 const ProfitLoss = require('../accounts/profit&loss');
 const Sales = require('../accounts/sales')
 
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
+
+function verifyToken(req, res, next){
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({message: 'Unauthorized: Missing token'});
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        req.userId = decoded.user.emp_no;
+        console.log('User ID:' , req.userId);
+        next();
+    }catch (err){
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        
+    }
+}
+
+async function isAdmin(req, res, next){
+    try{
+        const user = await Staff.findOne({emp_no: req.userId});
+        console.log('User', user);
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'service' && user.role !== 'front office' )){
+            console.log('User is not admin');
+            return res.status(403).json({message: "Unauthorized: Only admin users can perform this action"});
+            
+        }
+        console.log('User is Admin')
+    } catch (err){
+        res.status(500).json({message: err.message});
+    }
+} 
+
+
 async function updateFinancialEntries(groupName, amount, date, action = 'add') {
     const year = date.getFullYear();
 
@@ -44,7 +83,7 @@ async function updateFinancialEntries(groupName, amount, date, action = 'add') {
     await profitLossEntry.save();
 }
 
-router.post('/room-services', async (req, res) => {
+router.post('/room-services', verifyToken, isAdmin,  async (req, res) => {
     try {
         const { menuItems, delivery_fee, room_no } = req.body;
 
@@ -91,7 +130,7 @@ router.post('/room-services', async (req, res) => {
 
 
 
-router.get('/room-services', async (req, res) => {
+router.get('/room-services', verifyToken, isAdmin,  async (req, res) => {
     try {
         const roomServices = await RoomService.find().populate('menuId');
         res.json(roomServices);
@@ -101,7 +140,7 @@ router.get('/room-services', async (req, res) => {
 });
 
 
-router.get('/room-services/:id', async (req, res) => {
+router.get('/room-services/:id', verifyToken, isAdmin,  async (req, res) => {
     try {
         const roomService = await RoomService.findById(req.params.id).populate('menuId');
         if (!roomService) {
@@ -114,7 +153,7 @@ router.get('/room-services/:id', async (req, res) => {
 });
 
 
-router.patch('/room-services/:id', async (req, res) => {
+router.patch('/room-services/:id', verifyToken, isAdmin,  async (req, res) => {
     try {
         const { menuItems, delivery_fee , room_no} = req.body;
 
@@ -148,7 +187,7 @@ router.patch('/room-services/:id', async (req, res) => {
     }
 });
 
-router.get('/room-services/room/:room_no', async (req, res) => {
+router.get('/room-services/room/:room_no', verifyToken, isAdmin,  async (req, res) => {
     try {
         const roomServices = await RoomService.find({ room_no: req.params.room_no }).populate('menuId');
         if (!roomServices || roomServices.length === 0) {
@@ -161,7 +200,7 @@ router.get('/room-services/room/:room_no', async (req, res) => {
     }
 });
 
-router.delete('/room-services/:id', async (req, res) => {
+router.delete('/room-services/:id', verifyToken, isAdmin,  async (req, res) => {
     try {
         const deletedRoomService = await RoomService.findByIdAndDelete(req.params.id);
         if (!deletedRoomService) {

@@ -19,33 +19,52 @@ router.post('/login', async (req, res) => {
 
         const payload = {
             user: {
-                id: user._id,
+                emp_no: user.emp_no, 
                 role: user.role
             }
         };
-
+        
         jwt.sign(payload, 'your_secret_key', { expiresIn: '1h' }, (err, token) => {
             if (err) {
                 throw err;
             }
+        
+            res.cookie('token', token, {
+                httpOnly: false, 
+                secure: process.env.NODE_ENV === 'production', 
+                maxAge: 3600000 
+            });
+        
             res.json({
-                token,
                 user: {
-                    id: user._id,
+                    emp_no: user.emp_no,
                     fname: user.fname,
                     lname: user.lname,
                     role: user.role,
-                    email: user.email,
-                    emp_no: user.emp_no
+                    email: user.email
                 }
             });
         });
+        
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
+
+router.post('/logout', (req, res) => {
+    try {
+        res.clearCookie('token', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        res.json({ message: 'Logged out successfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
 router.post('/change-password', async (req, res) => {
     const { emp_no, currentPassword, newPassword } = req.body;

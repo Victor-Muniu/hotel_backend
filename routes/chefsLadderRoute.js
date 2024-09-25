@@ -2,6 +2,54 @@ const express = require('express');
 const router = express.Router();
 const CheffsLadder = require('../food_production/chefsLadder');
 
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
+
+function verifyToken(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ message: 'Unauthorized: Missing token' });
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        if (!decoded || !decoded.user || !decoded.user.emp_no) {
+            console.log('Token does not contain user information');
+            return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        }
+        req.userEmpNo = decoded.user.emp_no; 
+        
+        next();
+    } catch (err) {
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        console.log('Token verification error:', err.message);
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+    }
+}
+
+
+async function isAdmin(req, res, next) {
+    try {
+        console.log('User emp_no from token:', req.userEmpNo); 
+        
+        const user = await Staff.findOne({ emp_no: req.userEmpNo }); 
+        console.log('User fetched from database:', user); 
+        
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'food production')) {
+            console.log('User is not admin');
+            return res.status(403).json({ message: 'Unauthorized: Only admin users can perform this action' });
+        }
+        
+        console.log('User is Admin');
+        next(); 
+    } catch (err) {
+        console.error('Error in isAdmin middleware:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+}
+
 function calculateStocks(doc) {
     const opening_stock = Number(doc.opening_stock);
     const issued = Number(doc.issued);
@@ -14,7 +62,7 @@ function calculateStocks(doc) {
     return { total, closing_stock };
 }
 
-router.post('/cheffsLadder', async (req, res) => {
+router.post('/cheffsLadder', verifyToken, isAdmin, async (req, res) => {
     try {
         const { name, unit, date, opening_stock, issued, RT, sold, shift, remarks } = req.body;
 
@@ -49,7 +97,7 @@ router.post('/cheffsLadder', async (req, res) => {
     }
 });
 
-router.get('/cheffsLadder', async (req, res) => {
+router.get('/cheffsLadder', verifyToken, isAdmin, async (req, res) => {
     try {
         const ladders = await CheffsLadder.find();
         res.json(ladders);
@@ -58,7 +106,7 @@ router.get('/cheffsLadder', async (req, res) => {
     }
 });
 
-router.get('/cheffsLadder/:id', async (req, res) => {
+router.get('/cheffsLadder/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const ladder = await CheffsLadder.findById(req.params.id);
         if (!ladder) return res.status(404).json({ message: 'CheffsLadder not found' });
@@ -68,7 +116,7 @@ router.get('/cheffsLadder/:id', async (req, res) => {
     }
 });
 
-router.patch('/cheffsLadder/:id', async (req, res) => {
+router.patch('/cheffsLadder/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const ladder = await CheffsLadder.findById(req.params.id);
         if (!ladder) return res.status(404).json({ message: 'CheffsLadder not found' });
@@ -92,7 +140,7 @@ router.patch('/cheffsLadder/:id', async (req, res) => {
     }
 });
 
-router.delete('/cheffsLadder/:id', async (req, res) => {
+router.delete('/cheffsLadder/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const ladder = await CheffsLadder.findById(req.params.id);
         if (!ladder) return res.status(404).json({ message: 'CheffsLadder not found' });

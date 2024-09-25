@@ -5,36 +5,51 @@ const router = express.Router();
 const Banquetting = require('../banquetting/banquetting.js');
 
 function verifyToken(req, res, next) {
-    const token = req.headers['authorization'];
+    const token = req.cookies.token;
     if (!token) {
         return res.status(401).json({ message: 'Unauthorized: Missing token' });
     }
-
     try {
         const decoded = jwt.verify(token, 'your_secret_key');
-        req.userId = decoded.user.emp_no;
-        console.log('User ID:', req.userId); 
+        if (!decoded || !decoded.user || !decoded.user.emp_no) {
+            console.log('Token does not contain user information');
+            return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        }
+        req.userEmpNo = decoded.user.emp_no; 
+        
         next();
     } catch (err) {
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        console.log('Token verification error:', err.message);
         return res.status(403).json({ message: 'Unauthorized: Invalid token' });
     }
 }
 
+
 async function isAdmin(req, res, next) {
     try {
-        const user = await Staff.findOne({ emp_no: req.userId });
-        console.log('User:', user); 
-        if (!user || (user.role !== 'admin' && user.role !== 'accountant')) {
-            console.log('User has no authority'); 
-            return res.status(403).json({ message: 'Unauthorized: Only admin or accountant users can perform this action' });
+        console.log('User emp_no from token:', req.userEmpNo); 
+        
+        const user = await Staff.findOne({ emp_no: req.userEmpNo }); 
+        console.log('User fetched from database:', user); 
+        
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'front office' && user.role !== 'service' && user.role !== 'house keeping' && user.role !== 'procurement' && user.role == 'accounts')) {
+            console.log('User is not admin');
+            return res.status(403).json({ message: 'Unauthorized: Only admin users can perform this action' });
         }
-        next();
+        
+        console.log('User is Admin');
+        next(); 
     } catch (err) {
+        console.error('Error in isAdmin middleware:', err.message);
         res.status(500).json({ message: err.message });
     }
 }
 
-router.post('/banquettings',  async (req, res) => {
+router.post('/banquettings', verifyToken, isAdmin,  async (req, res) => {
     try {
         const newBanquetting = new Banquetting(req.body);
         await newBanquetting.save();
@@ -44,7 +59,7 @@ router.post('/banquettings',  async (req, res) => {
     }
 });
 
-router.get('/banquettings',  async (req, res) => {
+router.get('/banquettings', verifyToken, isAdmin,  async (req, res) => {
     try {
         const banquettings = await Banquetting.find();
         res.json(banquettings);
@@ -53,7 +68,7 @@ router.get('/banquettings',  async (req, res) => {
     }
 });
 
-router.get('/banquettings/:id',  async (req, res) =>{
+router.get('/banquettings/:id', verifyToken, isAdmin,  async (req, res) =>{
     try {
         const banquetting = await Banquetting.findById(req.params.id);
         if (!banquetting) {
@@ -65,7 +80,7 @@ router.get('/banquettings/:id',  async (req, res) =>{
     }
 });
 
-router.patch('/banquettings/:id',  async (req, res) => {
+router.patch('/banquettings/:id', verifyToken, isAdmin,  async (req, res) => {
     try {
         const updatedBanquetting = await Banquetting.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedBanquetting) {
@@ -77,7 +92,7 @@ router.patch('/banquettings/:id',  async (req, res) => {
     }
 });
 
-router.delete('/banquettings/:id',  async (req, res) => {
+router.delete('/banquettings/:id', verifyToken, isAdmin,  async (req, res) => {
     try {
         const banquetting = await Banquetting.findByIdAndRemove(req.params.id);
         if (!banquetting) {

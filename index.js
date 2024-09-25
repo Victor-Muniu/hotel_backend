@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors'); 
+const cookieParser = require('cookie-parser');
 
 const staffRouter = require('./routes/staffRoutes.js');
 const loginRouter = require('./routes/login.js')
@@ -62,8 +63,11 @@ const commentRouter = require('./routes/commentRoute.js')
 const app = express();
 app.use(express.json());
  
-
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:3000',  
+    credentials: true,                
+}));
+app.use(cookieParser()); 
 
 mongoose.connect("mongodb+srv://Victor254:pnlvmn4971@cluster0.yy3cbkm.mongodb.net/Hotel_Management");
 const db = mongoose.connection;

@@ -27,7 +27,7 @@ async function updateBalanceSheet(asset) {
 }
 
 
-router.post('/petty_cash', async (req, res)=>{
+router.post('/petty_cash',  async (req, res)=>{
     try {
         const { name, amount } = req.body;
         const pettyCash = new PettyCash({ name, amount });

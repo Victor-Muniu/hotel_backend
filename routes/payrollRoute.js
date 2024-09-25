@@ -1,10 +1,58 @@
 const express = require('express');
 const router = express.Router();
 const Payroll = require('../accounts/payroll.js');
-const Staff = require('../models/staff.js');
+
 const Expense = require('../accounts/expense.js');
 
-router.post('/payrolls', async (req, res) => {
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
+
+function verifyToken(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ message: 'Unauthorized: Missing token' });
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        if (!decoded || !decoded.user || !decoded.user.emp_no) {
+            console.log('Token does not contain user information');
+            return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        }
+        req.userEmpNo = decoded.user.emp_no; 
+        
+        next();
+    } catch (err) {
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        console.log('Token verification error:', err.message);
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+    }
+}
+
+
+async function isAdmin(req, res, next) {
+    try {
+        console.log('User emp_no from token:', req.userEmpNo); 
+        
+        const user = await Staff.findOne({ emp_no: req.userEmpNo }); 
+        console.log('User fetched from database:', user); 
+        
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'accounts' && user.role !== 'CEO')) {
+            console.log('User is not admin');
+            return res.status(403).json({ message: 'Unauthorized: Only admin users can perform this action' });
+        }
+        
+        console.log('User is Admin');
+        next(); 
+    } catch (err) {
+        console.error('Error in isAdmin middleware:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+}
+
+router.post('/payrolls', verifyToken, isAdmin,  async (req, res) => {
     try {
         const { date, gross_income, nhif_deductions, nssf_deductions, paye, helb, housing_Levy, emp_no } = req.body;
         const grossIncome = Number(gross_income);
@@ -69,7 +117,7 @@ router.post('/payrolls', async (req, res) => {
 });
 
 
-router.get('/payrolls', async (req, res) => {
+router.get('/payrolls', verifyToken, isAdmin,  async (req, res) => {
     try {
         const payrolls = await Payroll.find();
         const payrollsWithNames = await Promise.all(payrolls.map(async (payroll) => {
@@ -89,7 +137,7 @@ router.get('/payrolls', async (req, res) => {
     }
 });
 
-router.get('/payrolls/:id', async (req, res) => {
+router.get('/payrolls/:id', verifyToken, isAdmin,  async (req, res) => {
     try {
         const payroll = await Payroll.findById(req.params.id).populate('staff_Id');
         if (!payroll) {
@@ -114,7 +162,7 @@ router.get('/payrolls/:id', async (req, res) => {
     }
 });
 
-router.patch('/payrolls/:id', async (req, res) => {
+router.patch('/payrolls/:id', verifyToken, isAdmin,  async (req, res) => {
     try {
         const { date, gross_income, nhif_deductions, nssf_deductions, paye, helb, housing_Levy, emp_no } = req.body;
 
@@ -181,7 +229,7 @@ router.patch('/payrolls/:id', async (req, res) => {
 
 
 
-router.delete('/payrolls/:id', async (req, res) => {
+router.delete('/payrolls/:id', verifyToken, isAdmin,  async (req, res) => {
     try {
         const payroll = await Payroll.findByIdAndRemove(req.params.id);
         if (!payroll) {

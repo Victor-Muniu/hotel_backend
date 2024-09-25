@@ -3,11 +3,59 @@ const router = express.Router();
 const DailyCollections = require('../accounts/dailycollections');
 const BalanceSheet = require('../accounts/balancesheet');
 
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
+
+function verifyToken(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ message: 'Unauthorized: Missing token' });
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        if (!decoded || !decoded.user || !decoded.user.emp_no) {
+            console.log('Token does not contain user information');
+            return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        }
+        req.userEmpNo = decoded.user.emp_no; 
+        
+        next();
+    } catch (err) {
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        console.log('Token verification error:', err.message);
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+    }
+}
+
+
+async function isAdmin(req, res, next) {
+    try {
+        console.log('User emp_no from token:', req.userEmpNo); 
+        
+        const user = await Staff.findOne({ emp_no: req.userEmpNo }); 
+        console.log('User fetched from database:', user); 
+        
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'accounts' && user.role !== 'front office')) {
+            console.log('User is not admin');
+            return res.status(403).json({ message: 'Unauthorized: Only admin users can perform this action' });
+        }
+        
+        console.log('User is Admin');
+        next(); 
+    } catch (err) {
+        console.error('Error in isAdmin middleware:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+}
+
 function calculateTotalRevenue({ float, total_sales, cash_paid_out }) {
     return float + total_sales - cash_paid_out;
 }
 
-router.post('/dailycollections', async (req, res) => {
+router.post('/dailycollections', verifyToken, isAdmin, async (req, res) => {
     try {
         const { date, float, cash_paid_out, mpesa, cash, pesa_pal, equity, cheque, shift } = req.body;
 
@@ -53,7 +101,7 @@ router.post('/dailycollections', async (req, res) => {
     }
 });
 
-router.get('/dailycollections', async (req, res) => {
+router.get('/dailycollections',  async (req, res) => {
     try {
         const dailyCollections = await DailyCollections.find();
         res.json(dailyCollections);
@@ -62,7 +110,7 @@ router.get('/dailycollections', async (req, res) => {
     }
 });
 
-router.get('/dailycollections/:id', async (req, res) => {
+router.get('/dailycollections/:id',  async (req, res) => {
     try {
         const dailyCollection = await DailyCollections.findById(req.params.id);
         if (!dailyCollection) {
@@ -74,7 +122,7 @@ router.get('/dailycollections/:id', async (req, res) => {
     }
 });
 
-router.patch('/dailycollections/:id', async (req, res) => {
+router.patch('/dailycollections/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const updates = req.body;
 
@@ -111,7 +159,7 @@ router.patch('/dailycollections/:id', async (req, res) => {
     }
 });
 
-router.delete('/dailycollections/:id', async (req, res) => {
+router.delete('/dailycollections/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const deletedDailyCollection = await DailyCollections.findByIdAndDelete(req.params.id);
         if (!deletedDailyCollection) {

@@ -2,6 +2,53 @@ const express = require('express');
 const router = express.Router();
 const BanquettingInvoice = require('../banquetting/banquettingInvoice');
 const Banquetting = require('../banquetting/banquetting');
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
+
+function verifyToken(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ message: 'Unauthorized: Missing token' });
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        if (!decoded || !decoded.user || !decoded.user.emp_no) {
+            console.log('Token does not contain user information');
+            return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        }
+        req.userEmpNo = decoded.user.emp_no; 
+        
+        next();
+    } catch (err) {
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        console.log('Token verification error:', err.message);
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+    }
+}
+
+
+async function isAdmin(req, res, next) {
+    try {
+        console.log('User emp_no from token:', req.userEmpNo); 
+        
+        const user = await Staff.findOne({ emp_no: req.userEmpNo }); 
+        console.log('User fetched from database:', user); 
+        
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'accounts' && user.role !== 'CEO')) {
+            console.log('User is not admin');
+            return res.status(403).json({ message: 'Unauthorized: Only admin users can perform this action' });
+        }
+        
+        console.log('User is Admin');
+        next(); 
+    } catch (err) {
+        console.error('Error in isAdmin middleware:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+}
 
 
 function calculateTotalAmount(prices, discounts, packs) {
@@ -15,7 +62,7 @@ function calculateTotalAmount(prices, discounts, packs) {
     return totalAmount;
 }
 
-router.post('/banquettinginvoices', async (req, res) => {
+router.post('/banquettinginvoices', verifyToken, isAdmin, async (req, res) => {
     try {
         const { booking_no, discount, price, packs, Totalamount } = req.body;
 
@@ -41,7 +88,7 @@ router.post('/banquettinginvoices', async (req, res) => {
     }
 });
 
-router.get('/banquettinginvoices', async (req, res) => {
+router.get('/banquettinginvoices', verifyToken, isAdmin, async (req, res) => {
     try {
         const banquettingInvoices = await BanquettingInvoice.find().populate('banquettingId');
         if (!banquettingInvoices.length) {
@@ -73,7 +120,7 @@ router.get('/banquettinginvoices', async (req, res) => {
     }
 });
 
-router.get('/banquettinginvoices/:id', async (req, res) => {
+router.get('/banquettinginvoices/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const banquettingInvoiceId = req.params.id;
 
@@ -107,7 +154,7 @@ router.get('/banquettinginvoices/:id', async (req, res) => {
     }
 });
 
-router.get('/banquettinginvoices/:name', async (req, res) => {
+router.get('/banquettinginvoices/:name', verifyToken, isAdmin, async (req, res) => {
     try {
         const banquettingName = req.params.name;
         const banquetting = await Banquetting.findOne({ name: banquettingName });
@@ -123,7 +170,7 @@ router.get('/banquettinginvoices/:name', async (req, res) => {
 });
 
 
-router.patch('/banquettinginvoices/:id', async (req, res) => {
+router.patch('/banquettinginvoices/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const updatedBanquettingInvoice = await BanquettingInvoice.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedBanquettingInvoice) {
@@ -135,7 +182,7 @@ router.patch('/banquettinginvoices/:id', async (req, res) => {
     }
 });
 
-router.delete('/banquettinginvoices/:id', async (req, res) => {
+router.delete('/banquettinginvoices/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const deletedBanquettingInvoice = await BanquettingInvoice.findByIdAndDelete(req.params.id);
         if (!deletedBanquettingInvoice) {

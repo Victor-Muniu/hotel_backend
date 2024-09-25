@@ -4,8 +4,47 @@ const CarrageInward = require('../accounts/carriage_Inwards');
 const Expense = require('../accounts/expense');
 const GeneralLedger = require('../accounts/general_lenger');
 
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
 
-router.post('/carrage-inwards', async (req, res) => {
+function verifyToken(req, res, next){
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({message: 'Unauthorized: Missing token'});
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        req.userId = decoded.user.emp_no;
+        console.log('User ID:' , req.userId);
+        next();
+    }catch (err){
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        
+    }
+}
+
+async function isAdmin(req, res, next){
+    try{
+        const user = await Staff.findOne({emp_no: req.userId});
+        console.log('User', user);
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'accounts' && user.role !== 'procurement')){
+            console.log('User is not admin');
+            return res.status(403).json({message: "Unauthorized: Only admin users can perform this action"});
+            
+        }
+        console.log('User is Admin')
+    } catch (err){
+        res.status(500).json({message: err.message});
+    }
+}
+
+
+
+router.post('/carrage-inwards', verifyToken, isAdmin, async (req, res) => {
     try {
         const { name, date, amount } = req.body;
 
@@ -25,7 +64,7 @@ router.post('/carrage-inwards', async (req, res) => {
 });
 
 
-router.get('/carrage-inwards', async (req, res) => {
+router.get('/carrage-inwards', verifyToken, isAdmin, async (req, res) => {
     try {
         const carrageInwards = await CarrageInward.find();
         res.json(carrageInwards);
@@ -35,7 +74,7 @@ router.get('/carrage-inwards', async (req, res) => {
 });
 
 
-router.get('/carrage-inwards/:id', async (req, res) => {
+router.get('/carrage-inwards/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const carrageInward = await CarrageInward.findById(req.params.id);
         if (!carrageInward) {
@@ -47,7 +86,7 @@ router.get('/carrage-inwards/:id', async (req, res) => {
     }
 });
 
-router.patch('/carrage-inwards/:id', async (req, res) => {
+router.patch('/carrage-inwards/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const carrageInward = await CarrageInward.findById(req.params.id);
         if (!carrageInward) {
@@ -70,7 +109,7 @@ router.patch('/carrage-inwards/:id', async (req, res) => {
     }
 });
 
-router.delete('/carrage-inwards/:id', async (req, res) => {
+router.delete('/carrage-inwards/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const carrageInward = await CarrageInward.findById(req.params.id);
         if (!carrageInward) {

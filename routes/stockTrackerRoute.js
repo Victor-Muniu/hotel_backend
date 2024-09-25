@@ -3,7 +3,46 @@ const router = express.Router();
 const StockMovement = require('../store/stockTracker');
 const Item = require('../store/item');
 
-router.post('/stockMovements', async (req, res) => {
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
+
+function verifyToken(req, res, next){
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({message: 'Unauthorized: Missing token'});
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        req.userId = decoded.user.emp_no;
+        console.log('User ID:' , req.userId);
+        next();
+    }catch (err){
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        
+    }
+}
+
+async function isAdmin(req, res, next){
+    try{
+        const user = await Staff.findOne({emp_no: req.userId});
+        console.log('User', user);
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'accounts' )){
+            console.log('User is not admin');
+            return res.status(403).json({message: "Unauthorized: Only admin users can perform this action"});
+            
+        }
+        console.log('User is Admin')
+    } catch (err){
+        res.status(500).json({message: err.message});
+    }
+} 
+
+
+router.post('/stockMovements', verifyToken, isAdmin, async (req, res) => {
     try {
         const stockMovement = new StockMovement(req.body);
         await stockMovement.save();
@@ -28,7 +67,7 @@ router.post('/stockMovements', async (req, res) => {
     }
 });
 
-router.get('/stockMovements', async (req, res) => {
+router.get('/stockMovements', verifyToken, isAdmin, async (req, res) => {
     try {
         const stockMovements = await StockMovement.find().populate('itemId');
         res.json(stockMovements);
@@ -38,7 +77,7 @@ router.get('/stockMovements', async (req, res) => {
 });
 
 
-router.get('/stockMovements/report/:period', async (req, res) => {
+router.get('/stockMovements/report/:period', verifyToken, isAdmin, async (req, res) => {
     const period = req.params.period;
     let startDate;
     const endDate = new Date();

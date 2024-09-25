@@ -13,7 +13,55 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-router.post('/consolidated-purchases', async (req, res) => {
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
+
+function verifyToken(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ message: 'Unauthorized: Missing token' });
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        if (!decoded || !decoded.user || !decoded.user.emp_no) {
+            console.log('Token does not contain user information');
+            return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        }
+        req.userEmpNo = decoded.user.emp_no; 
+        
+        next();
+    } catch (err) {
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        console.log('Token verification error:', err.message);
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+    }
+}
+
+
+async function isAdmin(req, res, next) {
+    try {
+        console.log('User emp_no from token:', req.userEmpNo); 
+        
+        const user = await Staff.findOne({ emp_no: req.userEmpNo }); 
+        console.log('User fetched from database:', user); 
+        
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'accounts' && user.role !== 'CEO' && user.role !== 'procurement')) {
+            console.log('User is not admin');
+            return res.status(403).json({ message: 'Unauthorized: Only admin users can perform this action' });
+        }
+        
+        console.log('User is Admin');
+        next(); 
+    } catch (err) {
+        console.error('Error in isAdmin middleware:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+}
+
+router.post('/consolidated-purchases', verifyToken, isAdmin, async (req, res) => {
     try {
         const { date, amount, vendor } = req.body;
         const newEntry = new Consolidated_purchases({ date, amount, vendor });
@@ -43,7 +91,7 @@ router.post('/consolidated-purchases', async (req, res) => {
     }
 });
 
-router.get('/consolidated-purchases', async (req, res) => {
+router.get('/consolidated-purchases', verifyToken, isAdmin, async (req, res) => {
     try {
         const entries = await Consolidated_purchases.find();
         res.json(entries);
@@ -64,7 +112,7 @@ router.get('/consolidated-purchases/:id', async (req, res) => {
     }
 });
 
-router.patch('/consolidated-purchases/:id', async (req, res) => {
+router.patch('/consolidated-purchases/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const updatedEntry = await Consolidated_purchases.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedEntry) {
@@ -76,7 +124,7 @@ router.patch('/consolidated-purchases/:id', async (req, res) => {
     }
 });
 
-router.delete('/consolidated-purchases/:id', async (req, res) => {
+router.delete('/consolidated-purchases/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const deletedEntry = await Consolidated_purchases.findByIdAndDelete(req.params.id);
         if (!deletedEntry) {
@@ -88,7 +136,7 @@ router.delete('/consolidated-purchases/:id', async (req, res) => {
     }
 });
 
-router.post('/upload-consolidated-purchases', upload.single('file'), async (req, res) => {
+router.post('/upload-consolidated-purchases', verifyToken, isAdmin, upload.single('file'), async (req, res) => {
     if (!req.file || !req.file.buffer) {
         return res.status(400).send('No file uploaded.');
     }
@@ -154,7 +202,7 @@ function parseExcelDate(excelDate) {
     return new Date((excelTimestamp - (25567 + 2)) * 86400 * 1000);
 }
 
-router.post('/upload-items', upload.single('file'), async (req, res) => {
+router.post('/upload-items', verifyToken, isAdmin, upload.single('file'), async (req, res) => {
     if (!req.file || !req.file.buffer) {
         return res.status(400).send('No file uploaded.');
     }

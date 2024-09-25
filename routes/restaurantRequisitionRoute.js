@@ -4,7 +4,46 @@ const RestaurantRequisition = require('../requisition/restaurantRequisition');
 const Item = require('../store/item');
 const Alcarte = require('../restaurant/alcarte');
 
-router.post('/restaurantRequisitions', async (req, res) => {
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
+
+function verifyToken(req, res, next){
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({message: 'Unauthorized: Missing token'});
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        req.userId = decoded.user.emp_no;
+        console.log('User ID:' , req.userId);
+        next();
+    }catch (err){
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        
+    }
+}
+
+async function isAdmin(req, res, next){
+    try{
+        const user = await Staff.findOne({emp_no: req.userId});
+        console.log('User', user);
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'service' && user.role !== 'procurement' )){
+            console.log('User is not admin');
+            return res.status(403).json({message: "Unauthorized: Only admin users can perform this action"});
+            
+        }
+        console.log('User is Admin')
+    } catch (err){
+        res.status(500).json({message: err.message});
+    }
+} 
+
+
+router.post('/restaurantRequisitions', verifyToken, isAdmin, async (req, res) => {
     try {
         const { itemName, quantity, unit, description, date, department, status } = req.body;
 
@@ -31,7 +70,7 @@ router.post('/restaurantRequisitions', async (req, res) => {
     }
 });
 
-router.patch('/restaurantRequisitions/:id', async (req, res) => {
+router.patch('/restaurantRequisitions/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const { itemName, quantity, unit, description, date, department, status } = req.body;
 
@@ -92,7 +131,7 @@ router.patch('/restaurantRequisitions/:id', async (req, res) => {
         res.status(400).json({ message: err.message });
     }
 });
-router.get('/restaurantRequisitions', async (req, res) => {
+router.get('/restaurantRequisitions', verifyToken, isAdmin, async (req, res) => {
     try {
         const requisitions = await RestaurantRequisition.find().populate('itemID', 'name');
         res.json(requisitions);
@@ -101,7 +140,7 @@ router.get('/restaurantRequisitions', async (req, res) => {
     }
 });
 
-router.delete('/restaurantRequisitions/:id', async (req, res) => {
+router.delete('/restaurantRequisitions/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const requisition = await RestaurantRequisition.findById(req.params.id);
         if (!requisition) {

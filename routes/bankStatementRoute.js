@@ -9,8 +9,56 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
 
-router.post('/transactions', async (req, res) => {
+function verifyToken(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ message: 'Unauthorized: Missing token' });
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        if (!decoded || !decoded.user || !decoded.user.emp_no) {
+            console.log('Token does not contain user information');
+            return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        }
+        req.userEmpNo = decoded.user.emp_no; 
+        
+        next();
+    } catch (err) {
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        console.log('Token verification error:', err.message);
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+    }
+}
+
+
+async function isAdmin(req, res, next) {
+    try {
+        console.log('User emp_no from token:', req.userEmpNo); 
+        
+        const user = await Staff.findOne({ emp_no: req.userEmpNo }); 
+        console.log('User fetched from database:', user); 
+        
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'accounts' && user.role !== 'CEO')) {
+            console.log('User is not admin');
+            return res.status(403).json({ message: 'Unauthorized: Only admin users can perform this action' });
+        }
+        
+        console.log('User is Admin');
+        next(); 
+    } catch (err) {
+        console.error('Error in isAdmin middleware:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+}
+
+
+router.post('/transactions', verifyToken, isAdmin, async (req, res) => {
     try {
         const transaction = new Transaction(req.body);
         await transaction.save();
@@ -20,7 +68,7 @@ router.post('/transactions', async (req, res) => {
     }
 });
 
-router.get('/transactions', async (req, res) => {
+router.get('/transactions', verifyToken, isAdmin, async (req, res) => {
     try {
         const transactions = await Transaction.find({});
         res.send(transactions);
@@ -29,7 +77,7 @@ router.get('/transactions', async (req, res) => {
     }
 });
 
-router.get('/transactions/:id', async (req, res) => {
+router.get('/transactions/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const transaction = await Transaction.findById(req.params.id);
         if (!transaction) {
@@ -41,7 +89,7 @@ router.get('/transactions/:id', async (req, res) => {
     }
 });
 
-router.patch('/transactions/:id', async (req, res) => {
+router.patch('/transactions/:id', verifyToken, isAdmin, async (req, res) => {
     const updates = Object.keys(req.body);
     const allowedUpdates = ['date', 'value', 'particulars', 'transaction_cost', 'moneyOut', 'moneyIn', 'balance'];
     const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
@@ -64,7 +112,7 @@ router.patch('/transactions/:id', async (req, res) => {
     }
 });
 
-router.delete('/transactions/:id', async (req, res) => {
+router.delete('/transactions/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const transaction = await Transaction.findByIdAndDelete(req.params.id);
         if (!transaction) {
@@ -76,7 +124,7 @@ router.delete('/transactions/:id', async (req, res) => {
     }
 });
 
-router.post('/upload-excel', upload.single('file'), async (req, res) => {
+router.post('/upload-excel', verifyToken, isAdmin, upload.single('file'), async (req, res) => {
     if (!req.file || !req.file.buffer) {
         return res.status(400).send('No file uploaded.');
     }

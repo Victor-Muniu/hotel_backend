@@ -7,6 +7,53 @@ const TrialBalance = require('../accounts/trial_balance');
 const Sales = require('../accounts/sales');
 const ProfitLoss = require('../accounts/profit&loss');
 
+const jwt = require('jsonwebtoken');
+
+function verifyToken(req, res, next) {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ message: 'Unauthorized: Missing token' });
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        if (!decoded || !decoded.user || !decoded.user.emp_no) {
+            console.log('Token does not contain user information');
+            return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        }
+        req.userEmpNo = decoded.user.emp_no; 
+        
+        next();
+    } catch (err) {
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        console.log('Token verification error:', err.message);
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+    }
+}
+
+
+async function isAdmin(req, res, next) {
+    try {
+        console.log('User emp_no from token:', req.userEmpNo); 
+        
+        const user = await Staff.findOne({ emp_no: req.userEmpNo }); 
+        console.log('User fetched from database:', user); 
+        
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'front office')) {
+            console.log('User is not admin');
+            return res.status(403).json({ message: 'Unauthorized: Only admin users can perform this action' });
+        }
+        
+        console.log('User is Admin');
+        next(); 
+    } catch (err) {
+        console.error('Error in isAdmin middleware:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+}
+
 async function updateFinancialEntries(groupName, amount, date, action = 'add') {
     const year = date.getFullYear();
 
@@ -45,7 +92,7 @@ async function updateFinancialEntries(groupName, amount, date, action = 'add') {
     await profitLossEntry.save();
 }
 
-router.post('/curioPOS', async (req, res) => {
+router.post('/curioPOS', verifyToken, isAdmin, async (req, res) => {
     try {
         const { drinksNames, staffName, quantity, price, date } = req.body;
         const [fname, lname] = staffName.split(' ');
@@ -104,7 +151,7 @@ router.post('/curioPOS', async (req, res) => {
     }
 });
 
-router.get('/curioPOS', async (req, res) => {
+router.get('/curioPOS', verifyToken, isAdmin, async (req, res) => {
     try {
         const orders = await CurioPOS.find().populate('curioId').populate('staffId');
         res.json(orders);
@@ -113,7 +160,7 @@ router.get('/curioPOS', async (req, res) => {
     }
 });
 
-router.get('/curioPOS/:id', async (req, res) => {
+router.get('/curioPOS/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const order = await CurioPOS.findById(req.params.id).populate('curioId').populate('staffId');
         if (!order) {
@@ -125,7 +172,7 @@ router.get('/curioPOS/:id', async (req, res) => {
     }
 });
 
-router.patch('/curioPOS/:id', async (req, res) => {
+router.patch('/curioPOS/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const { drinksNames, staffName, quantity, price, date } = req.body;
         const order = await CurioPOS.findById(req.params.id);
@@ -171,7 +218,7 @@ router.patch('/curioPOS/:id', async (req, res) => {
     }
 });
 
-router.delete('/curioPOS/:id', async (req, res) => {
+router.delete('/curioPOS/:id', verifyToken, isAdmin, async (req, res) => {
     try {
         const order = await CurioPOS.findById(req.params.id);
         if (!order) {

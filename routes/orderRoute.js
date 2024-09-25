@@ -1,8 +1,44 @@
 const express = require('express');
 const router = express.Router();
 const Table = require('../models/table');
-able
-router.post('/tables', async (req, res) => {
+const Staff = require('../models/staff')
+const jwt = require('jsonwebtoken');
+
+function verifyToken(req, res, next){
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({message: 'Unauthorized: Missing token'});
+    }
+    try {
+        const decoded = jwt.verify(token, 'your_secret_key');
+        req.userId = decoded.user.emp_no;
+        console.log('User ID:' , req.userId);
+        next();
+    }catch (err){
+        res.clearCookie('token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production'
+        });
+        return res.status(403).json({ message: 'Unauthorized: Invalid token' });
+        
+    }
+}
+
+async function isAdmin(req, res, next){
+    try{
+        const user = await Staff.findOne({emp_no: req.userId});
+        console.log('User', user);
+        if (!user || (user.role !== 'admin' && user.role !== 'super admin' && user.role !== 'service')){
+            console.log('User is not admin');
+            return res.status(403).json({message: "Unauthorized: Only admin users can perform this action"});
+            
+        }
+        console.log('User is Admin')
+    } catch (err){
+        res.status(500).json({message: err.message});
+    }
+}
+router.post('/tables', verifyToken, isAdmin,   async (req, res) => {
     try {
         const newTable = new Table(req.body);
         await newTable.save();
@@ -12,7 +48,7 @@ router.post('/tables', async (req, res) => {
     }
 });
 
-router.get('/tables', async (req, res) => {
+router.get('/tables', verifyToken, isAdmin,   async (req, res) => {
     try {
         const tables = await Table.find();
         res.json(tables);
@@ -21,7 +57,7 @@ router.get('/tables', async (req, res) => {
     }
 });
 
-router.get('/tables/:id', async (req, res) => {
+router.get('/tables/:id', verifyToken, isAdmin,   async (req, res) => {
     try {
         const table = await Table.findById(req.params.id);
         if (!table) {
@@ -33,7 +69,7 @@ router.get('/tables/:id', async (req, res) => {
     }
 });
 
-router.patch('/tables/:id', async (req, res) => {
+router.patch('/tables/:id', verifyToken, isAdmin,   async (req, res) => {
     try {
         const updatedTable = await Table.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedTable) {
@@ -45,7 +81,7 @@ router.patch('/tables/:id', async (req, res) => {
     }
 });
 
-router.delete('/tables/:id', async (req, res) => {
+router.delete('/tables/:id', verifyToken, isAdmin,   async (req, res) => {
     try {
         const table = await Table.findById(req.params.id);
         if (!table) {
